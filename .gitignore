@@ -114,3 +114,5 @@ output/
 
 # Pycharm
 .idea
+
+.pytest_cache

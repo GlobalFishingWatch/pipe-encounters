@@ -1,3 +1,5 @@
+[git workflow documentation]: GITHUB-FLOW.md
+
 # Encounters pipeline
 
 This repository contains the encounters pipeline, which finds vessel encounters
@@ -10,6 +12,10 @@ based on AIS messages.
 You just need [docker](https://www.docker.com/) and
 [docker-compose](https://docs.docker.com/compose/) in your machine to run the
 pipeline. No other dependency is required.
+
+## Git Workflow
+
+Please refer to our [git workflow documentation] to know how to manage branches in this repository.
 
 ## Setup
 
