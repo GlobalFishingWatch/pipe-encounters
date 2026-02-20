@@ -13,11 +13,11 @@ from apache_beam.testing.util import assert_that
 from .test_resample import Record
 from .test_resample import ResampledRecord
 from .series_data import simple_series_data
-from pipeline.options.create_options import CreateOptions
-from pipeline.transforms import compute_adjacency
-from pipeline.transforms import resample
-from pipeline.objects import record
-from pipeline.utils.test import approx_equal_to as equal_to
+from pipe_encounters.options.create_options import CreateOptions
+from pipe_encounters.transforms import compute_adjacency
+from pipe_encounters.transforms import resample
+from pipe_encounters.objects import record
+from pipe_encounters.utils.test import approx_equal_to as equal_to
 
 
 logger = logging.getLogger()

@@ -4,7 +4,7 @@ from apache_beam import Map
 from apache_beam import PTransform
 from apache_beam.transforms.window import TimestampedValue
 
-from pipeline.objects.namedtuples import _datetime_to_s
+from pipe_encounters.objects.namedtuples import _datetime_to_s
 
 
 class CreateTimestampedAdjacencies(PTransform):

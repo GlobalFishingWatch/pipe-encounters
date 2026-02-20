@@ -1,7 +1,7 @@
 import datetime as dt
 import pytz
-from pipeline.objects import record
-from pipeline.transforms import add_id
+from pipe_encounters.objects import record
+from pipe_encounters.transforms import add_id
 import pytest
 
 epoch = dt.datetime.utcfromtimestamp(0)

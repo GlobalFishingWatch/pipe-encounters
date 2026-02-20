@@ -1,5 +1,5 @@
 
-from pipeline.create_raw_pipeline import create_queries
+from pipe_encounters.create_raw_pipeline import create_queries
 
 class DummyOptions(object):
     def __init__(self, start_date, end_date, source_dataset="SOURCE_DATASET", position_messages_table="position_messages_", segments_table="segments_"):

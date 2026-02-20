@@ -6,20 +6,19 @@ import numpy as np
 import pytz
 import six
 import apache_beam as beam
-from apache_beam import (CoGroupByKey, Filter, FlatMap, Flatten, Map, Pipeline,
-                         io)
+from apache_beam import Filter, FlatMap, Flatten, Map, Pipeline
 from apache_beam.options.pipeline_options import (GoogleCloudOptions,
                                                   StandardOptions)
 from apache_beam.runners import PipelineState
 
-from pipeline.objects.encounter import Encounter, RawEncounter
-from pipeline.options.merge_options import MergeOptions
-from pipeline.schemas.output import build as merge_schema
-from pipeline.transforms.add_id import AddEncounterId
-from pipeline.transforms.merge_encounters import MergeEncounters
-from pipeline.transforms.readers import ReadSources
-from pipeline.transforms.writers import WriteEncountersToBQ
-from pipeline.utils.ver import get_pipe_ver
+from pipe_encounters.objects.encounter import Encounter, RawEncounter
+from pipe_encounters.options.merge_options import MergeOptions
+from pipe_encounters.schemas.output import build as merge_schema
+from pipe_encounters.transforms.add_id import AddEncounterId
+from pipe_encounters.transforms.merge_encounters import MergeEncounters
+from pipe_encounters.transforms.readers import ReadSources
+from pipe_encounters.transforms.writers import WriteEncountersToBQ
+from pipe_encounters.utils.ver import get_pipe_ver
 
 
 def get_description(options: MergeOptions):
@@ -38,7 +37,7 @@ Created by the encounters_pipeline: {get_pipe_ver()}
 
 def combine_ids(obj):
     for v in [1, 2]:
-        obj[f'vessel_{v}_seg_id'] = (six.ensure_binary(obj.pop(f'vessel_{v}_id')), 
+        obj[f'vessel_{v}_seg_id'] = (six.ensure_binary(obj.pop(f'vessel_{v}_id')),
                                  six.ensure_binary(obj[f'vessel_{v}_seg_id']))
     return obj
 
@@ -122,11 +121,13 @@ def filter_by_distance(obj, min_distance_from_port_km):
         return []
     return [obj]
 
+
 def tag_with_gridcode(x):
     lat = np.clip(x.mean_latitude, -89.99, 89.99)
     gc = f"lon:{round(x.mean_longitude, 2):+07.2f}_lat:{round(lat, 2):+07.2f}"
     gc = gc.replace('-000.00', '+000.00').replace('+180.00', '-180.00')
     return (gc, x)
+
 
 def run(options):
 

@@ -8,18 +8,18 @@ from apache_beam.options.pipeline_options import StandardOptions
 from apache_beam.runners import PipelineState
 from apache_beam.transforms.window import TimestampedValue
 
-from pipeline.objects.encounter import RawEncounter
-from pipeline.objects.record import Record
-from pipeline.options.create_options import CreateOptions
-from pipeline.schemas.output import build_raw_encounter
-from pipeline.schemas.utils import schema_to_obj
-from pipeline.transforms.add_id import AddRawEncounterId
-from pipeline.transforms.compute_adjacency import ComputeAdjacency
-from pipeline.transforms.compute_encounters import ComputeEncounters
-from pipeline.transforms.resample import Resample
-from pipeline.transforms.writers import WriteEncountersToBQ
-from pipeline.transforms.readers import ReadSources
-from pipeline.utils.ver import get_pipe_ver
+from pipe_encounters.objects.encounter import RawEncounter
+from pipe_encounters.objects.record import Record
+from pipe_encounters.options.create_options import CreateOptions
+from pipe_encounters.schemas.output import build_raw_encounter
+from pipe_encounters.schemas.utils import schema_to_obj
+from pipe_encounters.transforms.add_id import AddRawEncounterId
+from pipe_encounters.transforms.compute_adjacency import ComputeAdjacency
+from pipe_encounters.transforms.compute_encounters import ComputeEncounters
+from pipe_encounters.transforms.resample import Resample
+from pipe_encounters.transforms.writers import WriteEncountersToBQ
+from pipe_encounters.transforms.readers import ReadSources
+from pipe_encounters.utils.ver import __version__
 
 import datetime
 import logging
@@ -33,7 +33,7 @@ PRECURSOR_DAYS = 1
 
 def get_description(options: CreateOptions):
     return f"""\
-Created by the encounters_pipeline: {get_pipe_ver()}.
+Created by the encounters_pipeline: {__version__}.
 * Creates raw encounters, reads the data from source and computes encounters over windows between start_date and end_date.
 * https://github.com/GlobalFishingWatch/encounters_pipeline
 * Sources: {options.source_tables}
@@ -101,7 +101,7 @@ def check_schema(x, schema):
             'TIMESTAMP' : (int, float)
         }
         if ftype not in allowed_types_map:
-             raise ValueError(f'unknown schema type {field}') 
+            raise ValueError(f'unknown schema type {field}')
         allowed_types = allowed_types_map[ftype]
         assert isinstance(val, allowed_types), (field, val)
     return x
@@ -166,7 +166,6 @@ def run(options):
         success_states.add(PipelineState.RUNNING)
         success_states.add(PipelineState.UNKNOWN)
         success_states.add(PipelineState.PENDING)
-
 
     logging.info('returning with result.state=%s' % result.state)
     return 0 if result.state in success_states else 1

@@ -1,8 +1,8 @@
-from pipeline.options import logging_monkeypatch
-from pipeline.options.validate_options import validate_options
-from pipeline.options.logging_options import LoggingOptions
-from pipeline.options.create_options import CreateOptions
-from pipeline import create_raw_pipeline
+from pipe_encounters.options import logging_monkeypatch
+from pipe_encounters.options.validate_options import validate_options
+from pipe_encounters.options.logging_options import LoggingOptions
+from pipe_encounters.options.create_options import CreateOptions
+from pipe_encounters import create_raw_pipeline
 from apache_beam.options.pipeline_options import PipelineOptions
 import sys
 

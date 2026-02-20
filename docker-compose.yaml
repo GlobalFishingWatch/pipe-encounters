@@ -1,33 +1,44 @@
-version: '2'
 services:
-  pipe_encounters:
+  gcloud:
+    image: google/cloud-sdk:latest
+    volumes:
+      - "gcp:/root/.config/"
+    entrypoint: gcloud
+
+  dev:
     build:
       context: .
-      dockerfile: Dockerfile-scheduler
     image: gfw/pipe-encounters
     volumes:
       - ".:/opt/project"
       - "gcp:/root/.config/"
+    entrypoint: /bin/bash
 
   create_raw_encounters:
     build:
       context: .
-      dockerfile: Dockerfile-scheduler
     image: gfw/pipe-encounters
     volumes:
       - ".:/opt/project"
       - "gcp:/root/.config/"
-    entrypoint: ["python", "-m", "pipeline.create_raw_encounters"]
+    entrypoint: ["pipe-encounters", "create_raw_encounters"]
 
   merge_encounters:
     build:
       context: .
-      dockerfile: Dockerfile-scheduler
     image: gfw/pipe-encounters
     volumes:
       - ".:/opt/project"
       - "gcp:/root/.config/"
-    entrypoint: ["python", "-m", "pipeline.merge_encounters"]
+    entrypoint: ["pipe-encounters", "merge_encounters"]
+
+  test:
+    # Runs tests using the production Docker image.
+    # Intended to be executed in the GitHub CI environment.
+    build:
+      context: .
+      target: test
+    entrypoint: "pytest -v"
 
 volumes:
   gcp:

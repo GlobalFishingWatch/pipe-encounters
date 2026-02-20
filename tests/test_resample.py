@@ -1,7 +1,7 @@
 import datetime as dt
 import pytz
-from pipeline.objects import record
-from pipeline.transforms import resample
+from pipe_encounters.objects import record
+from pipe_encounters.transforms import resample
 
 def Record(timestamp, lat, lon, id=b'0', speed=0.0):
     if not isinstance(timestamp, dt.datetime):
