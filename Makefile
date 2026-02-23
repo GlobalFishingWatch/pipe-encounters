@@ -11,7 +11,7 @@ GCP_DOCKER_VOLUME:=gcp
 sources = src
 
 PYTHON:=python
-PIP:=pip
+PIP:=python -m pip
 
 # ---------------------
 # DOCKER

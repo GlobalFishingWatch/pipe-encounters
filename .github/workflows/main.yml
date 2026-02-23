@@ -15,7 +15,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4.1.0
         with:
-          python-version: 3.8
+          python-version: 3.12
 
       - name: Install flake8
         run: pip --disable-pip-version-check install flake8
@@ -30,7 +30,7 @@ jobs:
       fail-fast: true
       matrix:
         os: ["ubuntu-latest"]
-        python-version: ["3.8"]
+        python-version: ["3.12"]
     env:
       VENV: .venv
       PACKAGE: pipe_encounters
@@ -60,7 +60,7 @@ jobs:
           pytest --cov=$PACKAGE --cov-report=xml
 
       - name: Upload coverage reports to Codecov
-        if: github.ref == 'refs/heads/main' && matrix.python-version == '3.8'
+        if: github.ref == 'refs/heads/main' && matrix.python-version == '3.12'
         uses: codecov/codecov-action@v4.0.1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}

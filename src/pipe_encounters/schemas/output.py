@@ -19,7 +19,7 @@ def build():
             "Second take a weighted average of the averages "
             "(by duration of the raw encounters that are being merged) "
             "to come up with the average lat/lon for the merged encounter. "
-            "No guarantee the mean lat/lon will occur along the track.",
+            "No guarantee the mean lat/lon will occur along the track."
         )
     )
     builder.add(
@@ -31,7 +31,7 @@ def build():
             "as means over the interpolated points. Second take a weighted average of the averages "  # noqa
             "(by duration of the raw encounters that are being merged) "
             "to come up with the average lat/lon for the merged encounter. "
-            "No guarantee the mean lat/lon will occur along the track.",
+            "No guarantee the mean lat/lon will occur along the track."
         )
     )
     builder.add("median_distance_km", "FLOAT", description="The median distance, measured in km.")
@@ -77,7 +77,7 @@ def build_raw_encounter():
         description=(
             "The mean latitude. "
             "These values are calculated for the raw segments when these values are computed "
-            "as means over the interpolated points.",
+            "as means over the interpolated points."
         )
     )
     builder.add(
@@ -86,7 +86,7 @@ def build_raw_encounter():
         description=(
             "The mean longitude. "
             "These values are calculated for the raw segments when these values are computed "
-            "as means over the interpolated points.",
+            "as means over the interpolated points."
         )
     )
     builder.add("median_distance_km", "FLOAT", description="The median distance, measured in km.")
