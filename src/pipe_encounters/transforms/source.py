@@ -1,10 +1,3 @@
-from apache_beam import PTransform
-from apache_beam import io
-from apache_beam import Map
-import datetime as dt
-import pytz
-
-
 # class Source(PTransform):
 
 #     def __init__(self, query):

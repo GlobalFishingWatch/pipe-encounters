@@ -4,13 +4,12 @@
 # np.save("inland.npy", imarray == -10)
 # sparsify("../inland.npy", "sparse_inland.pickle")
 
-from __future__ import print_function, division
+from __future__ import division, print_function
+
+import array
+import bisect
 import pickle
 import time
-import bisect
-import array
-
-
 
 
 class BaseMask(object):
@@ -18,10 +17,11 @@ class BaseMask(object):
     @staticmethod
     def _load_mask(path, threshold, invert):
         import rasterio
+
         with rasterio.open(path) as src:
             [img] = src.read()
             height, width = img.shape
-            # [first_x, dx, shear_0, first_y, shear_1, dy] = 
+            # [first_x, dx, shear_0, first_y, shear_1, dy] =
             [dx, shear_0, first_x, shear_1, dy, first_y] = src.transform[:6]
         assert shear_0 == shear_1 == 0, "shearing is not supported"
         assert dx > 0 and dy < 0, "only normal image orientation supported"
@@ -33,7 +33,7 @@ class BaseMask(object):
         min_y = min(first_y, last_y)
         max_y = max(first_y, last_y)
 
-        mask = (img > threshold)
+        mask = img > threshold
         if invert:
             mask = ~mask
 
@@ -42,35 +42,32 @@ class BaseMask(object):
     @classmethod
     def sparsify(cls, inpath, outpath, threshold=0.5, invert=False):
         import numpy as np
+
         (min_lon, max_lon, min_lat, max_lat), dense = cls._load_mask(inpath, threshold, invert)
         sparse = []
         indices = np.arange(dense.shape[1])
         assert dense.shape[1] <= 65535
         for i, row in enumerate(dense):
             # Ensure boolean and copy
-            mask = (row != 0) 
+            mask = row != 0
             # First element of mask is just row[0],
             # subsequent elements are true if that element
             # of row differs from the element previous.
             mask[1:] ^= row[:-1]
             # For each true element of mask store an index
             # as an unsigned short.
-            sparse.append(array.array('H', indices[mask]))
+            sparse.append(array.array("H", indices[mask]))
         mask_info = {
-            'min_lon': min_lon,
-            'max_lon': max_lon,
-            'min_lat': min_lat,
-            'max_lat': max_lat,
-            'n_lat': dense.shape[0],
-            'n_lon': dense.shape[1],
-            'data': tuple(sparse)
+            "min_lon": min_lon,
+            "max_lon": max_lon,
+            "min_lat": min_lat,
+            "max_lat": max_lat,
+            "n_lat": dense.shape[0],
+            "n_lon": dense.shape[1],
+            "data": tuple(sparse),
         }
         with open(outpath, "wb") as f:
             pickle.dump(mask_info, f)
-
-
-
-
 
 
 class Mask(BaseMask):
@@ -78,13 +75,13 @@ class Mask(BaseMask):
     def __init__(self, path, check=False):
         with open(path, "rb") as f:
             mask_info = pickle.load(f)
-        self.mask_data = mask_info['data']
-        self.MAX_LAT = mask_info['max_lat']
-        self.MIN_LAT = mask_info['min_lat']
-        self.MAX_LON = mask_info['max_lon']
-        self.MIN_LON = mask_info['min_lon']
-        self._dlat = (self.MAX_LAT - self.MIN_LAT) / mask_info['n_lat']
-        self._dlon = (self.MAX_LON - self.MIN_LON) / mask_info['n_lon']
+        self.mask_data = mask_info["data"]
+        self.MAX_LAT = mask_info["max_lat"]
+        self.MIN_LAT = mask_info["min_lat"]
+        self.MAX_LON = mask_info["max_lon"]
+        self.MIN_LON = mask_info["min_lon"]
+        self._dlat = (self.MAX_LAT - self.MIN_LAT) / mask_info["n_lat"]
+        self._dlon = (self.MAX_LON - self.MIN_LON) / mask_info["n_lon"]
         self.check = check
 
     def query(self, lat, lon):
@@ -97,12 +94,10 @@ class Mask(BaseMask):
         return ndx & 1
 
 
-
-
 class SimpleMask(BaseMask):
 
     def __init__(self, path, threshold, invert):
-        import numpy as np
+
         bounds, self.mask = self._load_mask(path, threshold, invert)
         self.MIN_LON, self.MAX_LON, self.MIN_LAT, self.MAX_LAT = bounds
         self.nlat, self.nlon = self.mask.shape
@@ -116,10 +111,9 @@ class SimpleMask(BaseMask):
         return self.mask[i, j]
 
 
-
-
 def test(sparse_path, dense_path, threshold=0.5, invert=False):
     import numpy as np
+
     dense_mask = SimpleMask(dense_path, threshold, invert)
     sparse_mask = Mask(sparse_path)
 
@@ -138,13 +132,13 @@ def test(sparse_path, dense_path, threshold=0.5, invert=False):
     print("Average amount of land (by degrees)", np.mean(results))
 
     t0 = time.clock()
-    for (lat, lon) in latlon:
+    for lat, lon in latlon:
         dense_result = dense_mask.query((lat, lon))
     d1 = time.clock() - t0
     print("Dense", d1, "seconds")
 
     t0 = time.clock()
-    for (lat, lon) in latlon:
+    for lat, lon in latlon:
         dense_result = sparse_mask.query((lat, lon))
     d2 = time.clock() - t0
     print("Sparse", d2, "seconds")
@@ -153,6 +147,7 @@ def test(sparse_path, dense_path, threshold=0.5, invert=False):
 
 def rasterize(mask, resolution=(1000, 2000)):
     import numpy as np
+
     img = np.zeros(resolution, dtype=float)
     lats = np.linspace(mask.MAX_LAT - 1e-3, mask.MIN_LAT + 1e-3, resolution[0])
     lons = np.linspace(mask.MIN_LON + 1e-3, mask.MAX_LON - 1e-3, resolution[1])
@@ -160,4 +155,3 @@ def rasterize(mask, resolution=(1000, 2000)):
         for j, ln in enumerate(lons):
             img[i, j] = mask.query(lt, ln)
     return img
-

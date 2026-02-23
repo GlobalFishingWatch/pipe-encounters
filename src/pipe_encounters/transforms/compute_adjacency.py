@@ -1,12 +1,14 @@
 import bisect
-import logging
 import math
+
 from collections import defaultdict
 
 import s2sphere
+
 from apache_beam import FlatMap, GroupByKey, Map, PTransform
 
 from ..objects.annotated_record import AnnotatedRecord
+
 
 inf = float("inf")
 
@@ -83,9 +85,7 @@ class ComputeAdjacency(PTransform):
         time, records = resampled_item
         for rcd1, neighbors, distances in self.compute_distances(records):
             yield AnnotatedRecord(
-                closest_neighbors=neighbors,
-                closest_distances=distances,
-                **rcd1._asdict()
+                closest_neighbors=neighbors, closest_distances=distances, **rcd1._asdict()
             )
 
     def tag_with_time(self, item):

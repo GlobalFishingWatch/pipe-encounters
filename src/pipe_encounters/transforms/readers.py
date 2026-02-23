@@ -1,6 +1,8 @@
 import apache_beam as beam
 
-list_to_dict = lambda labels: {x.split('=')[0]:x.split('=')[1] for x in labels}
+
+list_to_dict = lambda labels: {x.split("=")[0]: x.split("=")[1] for x in labels}  # noqa
+
 
 class ReadSources(beam.PTransform):
     def __init__(self, query, options: dict):
@@ -11,10 +13,8 @@ class ReadSources(beam.PTransform):
 
     def expand(self, pcoll):
         return pcoll | beam.io.ReadFromBigQuery(
-            query = self.query,
-            project = self.project,
-            use_standard_sql = self.use_legacy_sql,
-            bigquery_job_labels = self.labels
+            query=self.query,
+            project=self.project,
+            use_standard_sql=self.use_legacy_sql,
+            bigquery_job_labels=self.labels,
         )
-
-

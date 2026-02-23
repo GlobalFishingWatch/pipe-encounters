@@ -19,9 +19,13 @@ from pipe_encounters.transforms.merge_encounters import MergeEncounters
 from pipe_encounters.transforms.resample import Resample
 from pipe_encounters.utils.test import approx_equal_to as equal_to
 
-from .series_data import (dateline_series_data, fastsep_series_data,
-                          multi_series_data, real_series_data,
-                          simple_series_data)
+from .series_data import (
+    dateline_series_data,
+    fastsep_series_data,
+    multi_series_data,
+    real_series_data,
+    simple_series_data,
+)
 from .test_resample import ResampledRecord
 
 
@@ -69,7 +73,8 @@ def TaggedAnnotatedRecord(vessel_id, record, neighbor_count, closest_neighbor):
         **record._asdict(),
     )
 
-def get_options(items:list):
+
+def get_options(items: list):
     tuple_data = [tuple(x) for x in items]
     args = [
         f"--source_table={tuple_data}",
@@ -77,11 +82,9 @@ def get_options(items:list):
         "--start_date=2011-01-01",
         "--end_date=2011-01-01",
         "--max_encounter_dist_km=0.5",
-        "--min_encounter_time_minutes=120"
+        "--min_encounter_time_minutes=120",
     ]
     return tuple_data, CreateOptions(args)
-
-
 
 
 @pytest.mark.filterwarnings("ignore:Using fallback coder:UserWarning")
@@ -99,9 +102,7 @@ class TestComputeEncounters(unittest.TestCase):
                 | "Ensure ID is bytes" >> Map(ensure_bytes_id)
                 | Resample(increment_s=60 * 10, max_gap_s=60 * 70, extrapolate=False)
                 | ComputeAdjacency(max_adjacency_distance_km=1.0)
-                | ComputeEncounters(
-                    max_km_for_encounter=0.5, min_minutes_for_encounter=30
-                )
+                | ComputeEncounters(max_km_for_encounter=0.5, min_minutes_for_encounter=30)
             )
             assert_that(results, equal_to(self._get_simple_expected()))
 
@@ -115,9 +116,7 @@ class TestComputeEncounters(unittest.TestCase):
                 | "Ensure ID is bytes" >> Map(ensure_bytes_id)
                 | Resample(increment_s=60 * 10, max_gap_s=60 * 70, extrapolate=False)
                 | ComputeAdjacency(max_adjacency_distance_km=1.0)
-                | ComputeEncounters(
-                    max_km_for_encounter=0.5, min_minutes_for_encounter=30
-                )
+                | ComputeEncounters(max_km_for_encounter=0.5, min_minutes_for_encounter=30)
             )
             assert_that(results, equal_to(self._get_multi_expected()))
 
@@ -131,12 +130,8 @@ class TestComputeEncounters(unittest.TestCase):
                 | beam.Map(lambda x: record.Record(*x))
                 | "Ensure ID is bytes" >> Map(ensure_bytes_id)
                 | Resample(increment_s=60 * 10, max_gap_s=60 * 70, extrapolate=False)
-                | ComputeAdjacency(
-                    max_adjacency_distance_km=1.0, max_tracked_distances=1
-                )
-                | ComputeEncounters(
-                    max_km_for_encounter=0.5, min_minutes_for_encounter=30
-                )
+                | ComputeAdjacency(max_adjacency_distance_km=1.0, max_tracked_distances=1)
+                | ComputeEncounters(max_km_for_encounter=0.5, min_minutes_for_encounter=30)
             )
             assert_that(results, equal_to(self._get_nerfed_multi_expected()))
 
@@ -150,9 +145,7 @@ class TestComputeEncounters(unittest.TestCase):
                 | "Ensure ID is bytes" >> Map(ensure_bytes_id)
                 | Resample(increment_s=60 * 10, max_gap_s=60 * 70, extrapolate=False)
                 | ComputeAdjacency(max_adjacency_distance_km=1.0)
-                | ComputeEncounters(
-                    max_km_for_encounter=0.5, min_minutes_for_encounter=30
-                )
+                | ComputeEncounters(max_km_for_encounter=0.5, min_minutes_for_encounter=30)
             )
             assert_that(results, equal_to(self._get_dateline_expected()))
 
@@ -173,9 +166,7 @@ class TestComputeEncounters(unittest.TestCase):
                 | "Ensure ID is bytes" >> Map(ensure_bytes_id)
                 | Resample(increment_s=60 * 10, max_gap_s=60 * 70, extrapolate=False)
                 | ComputeAdjacency(max_adjacency_distance_km=1.0)
-                | ComputeEncounters(
-                    max_km_for_encounter=0.5, min_minutes_for_encounter=30
-                )
+                | ComputeEncounters(max_km_for_encounter=0.5, min_minutes_for_encounter=30)
             )
             assert_that(results, equal_to([]))
 
@@ -189,9 +180,7 @@ class TestComputeEncounters(unittest.TestCase):
                 | "Ensure ID is bytes" >> Map(ensure_bytes_id)
                 | Resample(increment_s=60 * 10, max_gap_s=60 * 70, extrapolate=False)
                 | ComputeAdjacency(max_adjacency_distance_km=1.0)
-                | ComputeEncounters(
-                    max_km_for_encounter=0.5, min_minutes_for_encounter=30
-                )
+                | ComputeEncounters(max_km_for_encounter=0.5, min_minutes_for_encounter=30)
             )
             assert_that(results, equal_to(self._get_real_expected()))
 
@@ -205,9 +194,7 @@ class TestComputeEncounters(unittest.TestCase):
                 | "Ensure ID is bytes" >> Map(ensure_bytes_id)
                 | Resample(increment_s=60 * 10, max_gap_s=60 * 70, extrapolate=False)
                 | ComputeAdjacency(max_adjacency_distance_km=1.0)
-                | ComputeEncounters(
-                    max_km_for_encounter=0.5, min_minutes_for_encounter=30
-                )
+                | ComputeEncounters(max_km_for_encounter=0.5, min_minutes_for_encounter=30)
                 | encounter.Encounter.ToDict()
             )
             assert_that(results, equal_to(self._get_messages_expected()))
@@ -222,9 +209,7 @@ class TestComputeEncounters(unittest.TestCase):
                 | "Ensure ID is bytes" >> Map(ensure_bytes_id)
                 | Resample(increment_s=60 * 10, max_gap_s=60 * 70, extrapolate=False)
                 | ComputeAdjacency(max_adjacency_distance_km=1.0)
-                | ComputeEncounters(
-                    max_km_for_encounter=0.5, min_minutes_for_encounter=30
-                )
+                | ComputeEncounters(max_km_for_encounter=0.5, min_minutes_for_encounter=30)
                 | beam.Map(add_fake_vessel_id)
                 | MergeEncounters(min_hours_between_encounters=24)
                 | encounter.Encounter.ToDict()
@@ -242,9 +227,7 @@ class TestComputeEncounters(unittest.TestCase):
                 | "Ensure ID is bytes" >> Map(ensure_bytes_id)
                 | Resample(increment_s=60 * 10, max_gap_s=60 * 70, extrapolate=False)
                 | ComputeAdjacency(max_adjacency_distance_km=1.0)
-                | ComputeEncounters(
-                    max_km_for_encounter=0.5, min_minutes_for_encounter=30
-                )
+                | ComputeEncounters(max_km_for_encounter=0.5, min_minutes_for_encounter=30)
                 | beam.Map(add_fake_vessel_id)
                 | MergeEncounters(min_hours_between_encounters=24)
                 | encounter.Encounter.ToDict()

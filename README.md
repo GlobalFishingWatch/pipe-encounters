@@ -1,6 +1,21 @@
-[git workflow documentation]: GITHUB-FLOW.md
+<h1 align="center" style="border-bottom: none;"> pipe-encounters </h1>
 
-# Encounters pipeline
+<p align="center">
+  <a href="https://codecov.io/gh/GlobalFishingWatch/pipe-encounters">
+    <img alt="Coverage" src="https://codecov.io/gh/GlobalFishingWatch/pipe-enciounps/graph/badge.svg?token=XS7HTOWWYG">
+  </a>
+  <a>
+    <img alt="Python versions" src="https://img.shields.io/badge/python-3.8-blue">
+  </a>
+  <a>
+    <img alt="Apache Beam version" src="https://img.shields.io/badge/ApacheBeam-2.49.0-orange">
+  </a>
+  <a>
+    <img alt="Last release" src="https://img.shields.io/github/v/release/GlobalFishingWatch/pipe-encounters">
+  </a>
+</p>
+
+[git workflow documentation]: GITHUB-FLOW.md
 
 This repository contains the encounters pipeline, which finds vessel encounters
 based on AIS messages.

@@ -1,22 +1,16 @@
-from apache_beam.io.gcp.internal.clients.bigquery import TableSchema, TableFieldSchema
+from apache_beam.io.gcp.internal.clients.bigquery import TableFieldSchema, TableSchema
+
 
 class SchemaBuilder(object):
 
-    allowed_types = {
-        "INTEGER",
-        "FLOAT",
-        "TIMESTAMP",
-        "STRING",
-        "RECORD",
-        "DATE"
-    }
+    allowed_types = {"INTEGER", "FLOAT", "TIMESTAMP", "STRING", "RECORD", "DATE"}
 
     def __init__(self):
         self.schema = TableSchema()
 
-    def build(self, name, schema_type, mode='REQUIRED', description=None):
+    def build(self, name, schema_type, mode="REQUIRED", description=None):
         is_record = isinstance(schema_type, (list, tuple))
-        type_name = 'RECORD' if is_record else schema_type
+        type_name = "RECORD" if is_record else schema_type
         if type_name not in self.allowed_types:
             raise ValueError('"{}" not in allowed_types'.format(type_name))
         if description is None:
@@ -38,11 +32,14 @@ class SchemaBuilder(object):
 
 
 def schema_field_to_dict(x):
-    return {'name' : x.name,
-            'mode' : x.mode,
-            'type' : x.type,
-            'decription': x.description,
-            'fields' : [schema_field_to_dict(x) for x in x.fields]}
+    return {
+        "name": x.name,
+        "mode": x.mode,
+        "type": x.type,
+        "decription": x.description,
+        "fields": [schema_field_to_dict(x) for x in x.fields],
+    }
+
 
 def schema_to_obj(x):
     return [schema_field_to_dict(x) for x in x.fields]

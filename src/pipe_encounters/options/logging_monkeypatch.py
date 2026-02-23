@@ -1,5 +1,6 @@
 import logging
 
+
 # monkey patch to suppress the annoying warning you get when you import apache_beam
 #
 # No handlers could be found for logger "oauth2client.contrib.multistore_file"
@@ -9,7 +10,6 @@ import logging
 
 
 # This just creates a null handler for that logger so there is no output
-logger = logging.getLogger('oauth2client.contrib.multistore_file')
+logger = logging.getLogger("oauth2client.contrib.multistore_file")
 handler = logging.NullHandler()
 logger.addHandler(handler)
-

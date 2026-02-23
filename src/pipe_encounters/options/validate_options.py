@@ -1,12 +1,15 @@
 import argparse
 import sys
+
 import six
 
-from apache_beam.options.pipeline_options import PipelineOptions
-from apache_beam.options.pipeline_options import StandardOptions
-from apache_beam.options.pipeline_options import GoogleCloudOptions
-from apache_beam.options.pipeline_options import WorkerOptions
-from apache_beam.options.pipeline_options import SetupOptions
+from apache_beam.options.pipeline_options import (
+    GoogleCloudOptions,
+    PipelineOptions,
+    SetupOptions,
+    StandardOptions,
+    WorkerOptions,
+)
 
 
 def validate_options(args=None, option_classes=None):
@@ -32,9 +35,7 @@ def validate_options(args=None, option_classes=None):
     StandardOptions._add_argparse_args(parser.add_argument_group("Dataflow Runner"))
 
     if help or not local:
-        GoogleCloudOptions._add_argparse_args(
-            parser.add_argument_group("Dataflow Runtime")
-        )
+        GoogleCloudOptions._add_argparse_args(parser.add_argument_group("Dataflow Runtime"))
         WorkerOptions._add_argparse_args(parser.add_argument_group("Dataflow Workers"))
         SetupOptions._add_argparse_args(parser.add_argument_group("Dataflow Setup"))
 
@@ -45,8 +46,7 @@ def validate_options(args=None, option_classes=None):
 
 
 def flatten(struct):
-    """
-    Creates a flat list of all all items in structured output (dicts, lists, items):
+    """Creates a flat list of all all items in structured output (dicts, lists, items):
     .. code-block:: python
         >>> sorted(flatten({'a': 'foo', 'b': 'bar'}))
         ['bar', 'foo']

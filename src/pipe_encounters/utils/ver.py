@@ -1,4 +1,5 @@
 """Holds the current version of the program."""
+
 import importlib.metadata
 
 
