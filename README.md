@@ -2,13 +2,13 @@
 
 <p align="center">
   <a href="https://codecov.io/gh/GlobalFishingWatch/pipe-encounters">
-    <img alt="Coverage" src="https://codecov.io/gh/GlobalFishingWatch/pipe-enciounps/graph/badge.svg?token=XS7HTOWWYG">
+    <img alt="Coverage" src="https://codecov.io/gh/GlobalFishingWatch/pipe-encounters/graph/badge.svg?token=XS7HTOWWYG">
   </a>
   <a>
-    <img alt="Python versions" src="https://img.shields.io/badge/python-3.8-blue">
+    <img alt="Python versions" src="https://img.shields.io/badge/python-3.12-blue">
   </a>
   <a>
-    <img alt="Apache Beam version" src="https://img.shields.io/badge/ApacheBeam-2.49.0-orange">
+    <img alt="Apache Beam version" src="https://img.shields.io/badge/ApacheBeam-2.70.0-orange">
   </a>
   <a>
     <img alt="Last release" src="https://img.shields.io/github/v/release/GlobalFishingWatch/pipe-encounters">
