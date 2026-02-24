@@ -34,7 +34,7 @@ def ensure_bytes_id(obj):
 
 
 logger = logging.getLogger()
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 
 def add_fake_vessel_id(obj):

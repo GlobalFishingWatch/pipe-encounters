@@ -8,6 +8,7 @@ services:
   dev:
     build:
       context: .
+      target: dev
     image: gfw/pipe-encounters
     volumes:
       - ".:/opt/project"
@@ -17,6 +18,7 @@ services:
   create_raw_encounters:
     build:
       context: .
+      target: dev
     image: gfw/pipe-encounters
     volumes:
       - ".:/opt/project"
@@ -26,6 +28,7 @@ services:
   merge_encounters:
     build:
       context: .
+      target: dev
     image: gfw/pipe-encounters
     volumes:
       - ".:/opt/project"

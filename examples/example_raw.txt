@@ -11,7 +11,6 @@ docker-compose run create_raw_encounters \
     --max_num_workers 200 \
     --labels environment=test \
     --setup_file ./setup.py \
-    --requirements_file requirements-worker.txt \
     --runner dataflow \
     --disk_size_gb 100 \
     --region us-central1 \

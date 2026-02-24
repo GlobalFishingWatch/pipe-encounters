@@ -18,12 +18,12 @@ from pipe_encounters.transforms.add_id import AddEncounterId
 from pipe_encounters.transforms.merge_encounters import MergeEncounters
 from pipe_encounters.transforms.readers import ReadSources
 from pipe_encounters.transforms.writers import WriteEncountersToBQ
-from pipe_encounters.utils.ver import get_pipe_ver
+from pipe_encounters.utils.ver import __version__
 
 
 def get_description(options: MergeOptions):
     return f"""\
-Created by the encounters_pipeline: {get_pipe_ver()}
+Created by the encounters_pipeline: {__version__}
 * Merges the encounters that are close in time into one long encounter.
 * https://github.com/GlobalFishingWatch/encounters_pipeline
 * Source raw encounters: {options.sink_table}
