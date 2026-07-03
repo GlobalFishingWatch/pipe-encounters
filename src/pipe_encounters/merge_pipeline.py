@@ -58,7 +58,10 @@ def create_queries(args):
         SELECT * except (start_time, end_time, encounter_id),
                 CAST(UNIX_MICROS(start_time) AS FLOAT64) / 1000000 AS start_time,
                 CAST(UNIX_MICROS(end_time) AS FLOAT64) / 1000000 AS end_time,
-                format("lon:%+07.2f_lat:%+07.2f", mean_longitude, mean_latitude) as gridcode,
+                format("lon:%+07.2f_lat:%+07.2f",
+                  floor(cast(mean_longitude as numeric) / numeric '0.01') * numeric '0.01',
+                  floor(cast(mean_latitude as numeric) / numeric '0.01') * numeric '0.01')
+                as gridcode
         FROM `{raw_table}` events
         WHERE DATE(start_time) BETWEEN '{start}' AND '{end}'
           {condition}
