@@ -49,7 +49,7 @@ DISK_SIZE_GB=100
 # short-name resolution and cannot prompt without a TTY, so a bare
 # `apache/beam_...` name fails with exit code 125.
 BASE_SDK_IMAGE="docker.io/apache/beam_python3.12_sdk:2.71.0"
-DOCKER_REGISTRY_PUSH_URL="us-central1-docker.pkg.dev/world-fishing-827/development/pipe-encounters-vi-928"
+DOCKER_REGISTRY_PUSH_URL="us-central1-docker.pkg.dev/world-fishing-827/development/pipe-encounters-vi-929"
 
 # ---------------------------------------------------------------------------
 # Launch
