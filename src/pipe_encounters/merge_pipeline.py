@@ -1,6 +1,7 @@
 import logging
 
 from datetime import datetime, timedelta
+import os
 
 import apache_beam as beam
 import numpy as np
@@ -38,7 +39,7 @@ Created by the encounters_pipeline: {__version__}
 def combine_ids(obj):
     for v in [1, 2]:
         obj[f"vessel_{v}_seg_id"] = (
-            six.ensure_binary(obj.pop(f"vessel_{v}_id")),
+            six.ensure_binary(obj.pop(f"entity_{v}_id")),
             six.ensure_binary(obj[f"vessel_{v}_seg_id"]),
         )
     return obj
@@ -67,18 +68,18 @@ def create_queries(args):
           {condition}
     ),
 
-    vessel_ids as (
-        {vessel_id_query}
+    entity_ids as (
+        {entity_id_query}
     )
 
     SELECT raw_encounters.* except(gridcode),
-            vid1.vessel_id as vessel_1_id,
-            vid2.vessel_id as vessel_2_id,
+            vid1.entity_id as entity_1_id,
+            vid2.entity_id as entity_2_id,
             distance_from_shore_m, distance_from_port_m
     FROM raw_encounters
-    JOIN vessel_ids as vid1
+    JOIN entity_ids as vid1
     ON vessel_1_seg_id = vid1.seg_id
-    JOIN vessel_ids as vid2
+    JOIN entity_ids as vid2
     ON vessel_2_seg_id = vid2.seg_id
     JOIN  `{spatial_measures_table}`
     USING (gridcode)
@@ -100,9 +101,9 @@ def create_queries(args):
         else:
             id_prefix = ""
         subqueries.append(
-            f'SELECT CONCAT("{id_prefix}", seg_id) AS seg_id, vessel_id FROM {table}'
+            f'SELECT CONCAT("{id_prefix}", seg_id) AS seg_id, entity_id FROM {table}, unnest(seg_ids)'
         )
-    vessel_id_query = "\nUNION ALL\n".join(subqueries)
+    entity_id_query = "\nUNION ALL\n".join(subqueries)
 
     start_window = start_date
     shift = 1000
@@ -111,12 +112,12 @@ def create_queries(args):
         query = template.format(
             raw_table=args.raw_table,
             condition=condition,
-            vessel_id_query=vessel_id_query,
+            entity_id_query=entity_id_query,
             start=start_window.isoformat(),
             end=end_window.isoformat(),
             spatial_measures_table=args.spatial_measures_table,
         )
-
+        print(f"Query for {start_window} to {end_window}:\n{query}")
         yield query
         start_window = end_window + timedelta(days=1)
 

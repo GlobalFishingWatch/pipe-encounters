@@ -35,8 +35,8 @@ RawEncounterCoder.register()
 Encounter = namedtuple(
     "Encounter",
     [
-        "vessel_1_id",
-        "vessel_2_id",
+        "entity_1_id",
+        "entity_2_id",
         "vessel_1_seg_ids",
         "vessel_2_seg_ids",
         "start_time",

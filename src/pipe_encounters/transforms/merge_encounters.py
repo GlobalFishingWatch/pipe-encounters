@@ -57,8 +57,8 @@ class MergeEncounters(PTransform):
             / total_seconds
         )
         return Encounter(
-            vessel_1_id=id_1,
-            vessel_2_id=id_2,
+            entity_1_id=id_1,
+            entity_2_id=id_2,
             start_time=min(enc.start_time for (enc, p1, p2) in records),
             end_time=max(enc.end_time for (enc, p1, p2) in records),
             mean_latitude=sum(

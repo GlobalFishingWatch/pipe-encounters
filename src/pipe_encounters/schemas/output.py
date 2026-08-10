@@ -47,7 +47,7 @@ def build():
     builder.add("end_lat", "FLOAT", description="The end latitude where the encounter finished.")
     builder.add("end_lon", "FLOAT", description="The end longitude where the encounter finished.")
     for v in [1, 2]:
-        builder.add(f"vessel_{v}_id", "STRING", description=f"The vessel id of the vessel {v}.")
+        builder.add(f"entity_{v}_id", "STRING", description=f"The entity id of the vessel {v}.")
         builder.add(
             f"vessel_{v}_seg_ids",
             "STRING",
