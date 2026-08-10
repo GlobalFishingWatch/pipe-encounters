@@ -31,7 +31,7 @@ TEMP_LOCATION="gs://world-fishing-827-us-central1-dataflow/ttl7/temp"
 
 # Data tables / date range (from the requested configuration).
 START_DATE="2012-01-01"
-END_DATE="2012-01-31"
+END_DATE="2026-01-01"
 RAW_TABLE="gfw-int-ais-datalake.encounters_v1.raw_encounters"
 SINK_TABLE="world-fishing-827.vi_928_quick_fix_3.encounters"
 VESSEL_ID_TABLE="world-fishing-827.prj_entity_hull.entity_epoch_v20260801"
