@@ -94,3 +94,39 @@ expected = [
 def test_resample():
     obj = resample.Resample(increment_s=60 * 10, max_gap_s=60 * 60)
     assert list(obj.resample_records(input_records)) == expected
+
+
+def test_resample_interpolates_across_gap_exactly_at_max_gap_s():
+    # Two records exactly max_gap_s (1 hour) apart: VMS-style polling regularly
+    # produces gaps at exactly this boundary, so it must still be interpolated
+    # across, not treated the same as a gap longer than max_gap_s.
+    boundary_records = [
+        Record("2011-07-01 00:00:00 UTC", lat=10.0, lon=10.0),
+        Record("2011-07-01 01:00:00 UTC", lat=11.0, lon=10.0),
+    ]
+    obj = resample.Resample(
+        increment_s=60 * 10, max_gap_s=60 * 60, extrapolate=False, inclusive=True
+    )
+    expected_boundary = [
+        ResampledRecord("2011-07-01 00:00:00 UTC", 10.0, 10.0, 0.17),
+        ResampledRecord("2011-07-01 00:10:00 UTC", 10.166666666666668, 10.0, 0.17),
+        ResampledRecord("2011-07-01 00:20:00 UTC", 10.333333333333334, 10.0, 0.17),
+        ResampledRecord("2011-07-01 00:30:00 UTC", 10.5, 10.0, 0.17),
+        ResampledRecord("2011-07-01 00:40:00 UTC", 10.666666666666668, 10.0, 0.17),
+        ResampledRecord("2011-07-01 00:50:00 UTC", 10.833333333333334, 10.0, 0.17),
+        ResampledRecord("2011-07-01 01:00:00 UTC", 11.0, 10.0, 0.17),
+    ]
+    assert list(obj.resample_records(boundary_records)) == expected_boundary
+
+
+def test_resample_excludes_gap_exactly_at_max_gap_s_when_not_inclusive():
+    # inclusive=False restores the legacy strict less-than behavior: a gap of
+    # exactly max_gap_s produces no interpolated points.
+    boundary_records = [
+        Record("2011-07-01 00:00:00 UTC", lat=10.0, lon=10.0),
+        Record("2011-07-01 01:00:00 UTC", lat=11.0, lon=10.0),
+    ]
+    obj = resample.Resample(
+        increment_s=60 * 10, max_gap_s=60 * 60, extrapolate=False, inclusive=False
+    )
+    assert list(obj.resample_records(boundary_records)) == []

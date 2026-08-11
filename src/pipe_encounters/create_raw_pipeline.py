@@ -24,7 +24,6 @@ from pipe_encounters.utils.ver import __version__
 
 
 RESAMPLE_INCREMENT_MINUTES = 10.0
-MAX_GAP_HOURS = 1.0
 PRECURSOR_DAYS = 1
 
 
@@ -36,6 +35,8 @@ Created by the encounters_pipeline: {__version__}.
 * Sources: {options.source_tables}
 * Maximum distance for vessels to be elegible (km): {options.max_encounter_dist_km}
 * Minimum minutes of vessel adjacency before we have an encounter: {options.min_encounter_time_minutes}
+* Maximum gap between positions to interpolate across (seconds): {options.max_gap_seconds}
+* Gaps of exactly max_gap_seconds are treated as interpolatable: {options.max_gap_seconds_inclusive}
 * Last processing date range: [{options.start_date}, {options.end_date}].
 """
 
@@ -140,7 +141,11 @@ def run(options):
         sources
         | Flatten()
         | Record.FromDict()
-        | Resample(increment_s=60 * RESAMPLE_INCREMENT_MINUTES, max_gap_s=60 * 60 * MAX_GAP_HOURS)
+        | Resample(
+            increment_s=60 * RESAMPLE_INCREMENT_MINUTES,
+            max_gap_s=create_options.max_gap_seconds,
+            inclusive=create_options.max_gap_seconds_inclusive,
+        )
         | ComputeAdjacency(max_adjacency_distance_km=create_options.max_encounter_dist_km)
         | ComputeEncounters(
             max_km_for_encounter=create_options.max_encounter_dist_km,

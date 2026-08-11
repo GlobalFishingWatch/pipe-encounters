@@ -29,14 +29,18 @@ class Resample(PTransform):
     extrapolate : bool, optional
         If true, extrapolate past the end of the first/last record up to
         max_gap_s or the day boundary, whichever is closer.
+    inclusive : bool, optional
+        If true, a gap of exactly max_gap_s is still interpolated across.
+        If false (default), only gaps strictly less than max_gap_s qualify.
     """
 
     epoch = dtime.datetime.utcfromtimestamp(0).replace(tzinfo=pytz.utc)
 
-    def __init__(self, increment_s, max_gap_s, extrapolate=True):
+    def __init__(self, increment_s, max_gap_s, extrapolate=True, inclusive=False):
         self.increment_s = increment_s
         self.max_gap_s = max_gap_s
         self.extrapolate = extrapolate
+        self.inclusive = inclusive
 
     def dt_to_s(self, timestamp):
         return (timestamp - self.epoch).total_seconds()
@@ -79,7 +83,12 @@ class Resample(PTransform):
                 assert t1 >= interp_time
                 assert DT > 0
 
-                if DT < self.max_gap_s:
+                if self.inclusive:
+                    gap_within_limit = DT <= self.max_gap_s
+                else:
+                    gap_within_limit = DT < self.max_gap_s
+
+                if gap_within_limit:
                     mix = dt / DT
                     yield ResampledRecord(
                         id=last_record.id,
