@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import argparse
+
 from apache_beam.options.pipeline_options import PipelineOptions
 
 
@@ -59,4 +61,21 @@ class CreateOptions(PipelineOptions):
             "--ssvid_filter",
             help="Subquery or list of ssvid to limit processing to.\n"
             "If prefixed by @, load from given path",
+        )
+        optional.add_argument(
+            "--max_gap_seconds",
+            type=int,
+            default=3600,
+            help="Gaps between positions longer than max_gap_seconds are not fully "
+            "interpolated across, so no encounter can be detected there. Defaults to "
+            "3600 (1 hour).",
+        )
+        optional.add_argument(
+            "--max_gap_seconds_inclusive",
+            action=argparse.BooleanOptionalAction,
+            default=False,
+            help="If true, a gap between positions of exactly max_gap_seconds "
+            "is still interpolated across, so an encounter can be detected "
+            "there. If false (default), only gaps strictly less than max_gap_seconds "
+            "qualify, matching legacy behavior. Pass --max_gap_seconds_inclusive to enable.",
         )
