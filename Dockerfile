@@ -33,7 +33,7 @@ RUN pip install -r requirements.txt
 FROM deps AS beam
 # Copy files from official SDK image, including script/dependencies.
 # IMPORTANT: This version must match the one in requirements.txt
-COPY --from=apache/beam_python3.12_sdk:2.70.0 /opt/apache/beam /opt/apache/beam
+COPY --from=docker.io/apache/beam_python3.12_sdk:2.71.0 /opt/apache/beam /opt/apache/beam
 
 # Set the entrypoint to Apache Beam SDK launcher.
 ENTRYPOINT ["/opt/apache/beam/boot"]
