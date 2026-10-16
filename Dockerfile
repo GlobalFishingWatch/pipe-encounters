@@ -32,7 +32,7 @@ COPY --from=builder /install /usr/local
 
 # APACHE BEAM INTEGRATION
 # IMPORTANT: this version must match the apache-beam pin in requirements.txt.
-COPY --from=apache/beam_python3.12_sdk:2.71.0 /opt/apache/beam /opt/apache/beam
+COPY --from=apache/beam_python3.12_sdk:2.76.0 /opt/apache/beam /opt/apache/beam
 ENTRYPOINT ["/opt/apache/beam/boot"]
 
 WORKDIR /opt/project
@@ -59,6 +59,12 @@ FROM prod AS test
 
 COPY ./requirements-test.txt .
 RUN pip install -r requirements-test.txt
+
+# The tests run Beam on Prism, a binary Beam downloads from GitHub on first use. Fetch it here,
+# so the tests don't download it on every run.
+RUN python -c "from apache_beam.options.pipeline_options import PipelineOptions; \
+from apache_beam.runners.portability.prism_runner import PrismJobServer as S; \
+server = S(PipelineOptions()); server.local_bin(server.path_to_binary(), S.BIN_CACHE)"
 
 COPY ./tests ./tests
 

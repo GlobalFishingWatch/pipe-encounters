@@ -18,28 +18,29 @@ name = "pipe-encounters"
 version = "4.6.0"
 description = "Tools for detecting vessel encounters."
 readme = "README.md"
-# license = "Apache-2.0"
+license = "Apache-2.0"
 authors = [
-    { name = "GFW back-end Engeneering Team" },
+    { name = "GFW Engineering Team", email = "engineering-team@globalfishingwatch.org" },
 ]
-maintainers = []
+maintainers = [
+    { name = "Tomás J. Link", email = "tomas.link@globalfishingwatch.org" },
+]
 classifiers = [
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3.12",
-
+    "Programming Language :: Python :: 3.13",
 ]
 requires-python = ">= 3.12"
 dependencies = [
-    "apache-beam[gcp]~=2.70",
-    "more_itertools~=8.12",
-    "s2sphere~=0.2",
-    "statistics~=1.0.3",
+  "apache-beam[gcp]~=2.76",
+  "more-itertools~=10.0",
+  "s2sphere~=0.2",
 ]
 
 [project.urls]
 Homepage = "https://github.com/GlobalFishingWatch/pipe-encounters"
 Documentation = "https://globalfishingwatch.github.io/pipe-encounters/"
-Changelog = "https://github.com/GlobalFishingWatch/pipe-encounters/blob/main/CHANGELOG.md"
+Changelog = "https://github.com/GlobalFishingWatch/pipe-encounters/releases"
 Repository = "https://github.com/GlobalFishingWatch/pipe-encounters"
 Issues = "https://github.com/GlobalFishingWatch/pipe-encounters/issues"
 
@@ -50,22 +51,19 @@ pipe-encounters = "pipe_encounters.cli:main"
 
 # Linting and code quality tools
 lint = [
-  "black~=24.8",               # Code formatting tool.
-  "isort~=5.13",               # Python imports sorting tool.
-  "mypy~=1.14",                # Static type checker.
+  "black~=25.1",               # Code formatting tool.
+  "isort~=6.0",                # Python imports sorting tool.
+  "mypy~=1.15",                # Static type checker.
   "pydocstyle~=6.3",           # Python docstring style checker.
   "ruff~=0.11",                # Linter and code analysis tool.
   "codespell[toml]~=2.4",      # Spell checker for code.
-  "flake8",                    # Simple PEP8 checker.
-  "types-PyYAML~=6.0",         # MyPy stubs for pyyaml.
+  "flake8~=7.0",               # Simple PEP8 checker.
 ]
 
 # Development workflow and tools
 dev = [
-  "pre-commit~=3.5",          # Framework for managing pre-commit hooks.
-  "pip-tools~=7.0",           # Freezing dependencies for production containers.
-  "pip-audit~=2.7",           # Audit for finding vulnerabilities in dependencies.
-  "matplotlib~=3.0",
+  "pre-commit~=4.2",          # Framework for managing pre-commit hooks.
+  "pip-audit~=2.8",           # Audit for finding vulnerabilities in dependencies.
   "memory_profiler~=0.6",
   "snakeviz~=2.0",
 ]
@@ -73,8 +71,17 @@ dev = [
 # Build tools
 build = [
   "build~=1.2",             # Python PEP 517 compliant build system.
-  "setuptools",             # Python packaging library.
+  "setuptools~=78.1",       # Python packaging library.
   "twine~=6.1",             # For uploading Python packages to PyPI.
+]
+
+# Test dependencies (PEP 735). Not published with the package: the test Docker image installs
+# them, compiled into requirements-test.txt, on top of the production image.
+[dependency-groups]
+test = [
+  "pytest~=9.0",             # Core testing framework.
+  "pytest-cov~=7.0",         # Coverage plugin for pytest.
+  "pytest-mock~=3.14",       # Mocking plugin for pytest.
 ]
 
 [tool.ruff]
@@ -148,7 +155,6 @@ addopts = "-v --cov=src --cov-report=term-missing"
 [tool.coverage.run]
 source = ["src", "tests"]
 branch = true
-parallel = true
 context = "${CONTEXT}"
 
 [tool.coverage.report]
