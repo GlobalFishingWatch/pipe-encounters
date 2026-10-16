@@ -40,7 +40,7 @@ to run this command and follow the instructions:
 
 
 ```
-docker compose run --entrypoint gcloud pipe_enocunters auth application-default login
+docker compose run gcloud auth application-default login
 ```
 
 ## Overview
@@ -56,14 +56,14 @@ one long encounter and *replacing* the table specified in `sink` with the merged
 ## CLI
 
 The pipeline includes a CLI that can be used to start both local test runs and
-remote full runs. Just run `docker compose run pipe_encounters --help` and follow the
+remote full runs. Just run `docker compose run pipeline --help` and follow the
 instructions there.
 
 ### Examples:
 
 In incremental mode, the form of the command is
 
-        docker-compose run create_raw_encounters \
+        docker compose run pipeline create_raw_encounters \
                 --source_table SOURCE_TABLE \
                 --start_date DATE \
                 --end_date DATE \
@@ -83,7 +83,7 @@ In incremental mode, the form of the command is
 The raw encounters are then merged together, removing duplicates and merging across day boundaries:
 
 
-        docker-compose run merge_encounters \
+        docker compose run pipeline merge_encounters \
                 --raw_table RAW_TABLE \
                 --vessel_id_table SEGMENT_TABLE \
                 --sink_table MERGED_TABLE \
@@ -111,7 +111,7 @@ Note that raw_table needs to be persistent since it is date sharded and new date
 are added with each run.
 
 
-        docker-compose run create_raw_encounters \
+        docker compose run pipeline create_raw_encounters \
                 --source_table pipe_production_v20201001.position_messages \
                 --start_date 2018-01-01 \
                 --end_date 2018-01-31 \
@@ -129,7 +129,7 @@ are added with each run.
                 --region us-central1
 
 
-        docker-compose run merge_encounters \
+        docker compose run pipeline merge_encounters \
                 --raw_table machine_learning_dev_ttl_120d.raw_encounters_test_ \
                 --vessel_id_table pipe_production_v20201001.segment_info \
                 --sink_table world-fishing-827:machine_learning_dev_ttl_120d.encounters_test_v20210718 \
