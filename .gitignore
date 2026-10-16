@@ -1,11 +1,11 @@
 untracked/
-
-# Created by https://www.gitignore.io/api/python
-.DS_Store
+output/
 *.ipynb
-untracked
+.pytest_cache/
+.ruff_cache/
 
-### Python ###
+.DS_Store
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -77,9 +77,6 @@ target/
 # Jupyter Notebook
 .ipynb_checkpoints
 
-# pyenv
-.python-version
-
 # celery beat schedule file
 celerybeat-schedule
 
@@ -92,8 +89,6 @@ celerybeat-schedule
 env/
 venv/
 ENV/
-env.bak/
-venv.bak/
 
 # Spyder project settings
 .spyderproject
@@ -108,16 +103,12 @@ venv.bak/
 # mypy
 .mypy_cache/
 
-# End of https://www.gitignore.io/api/python
-
-output/
-
 # Pycharm
 .idea
-
-.pytest_cache
-.ruff_cache
 
 # Terraform
 .terraform
 .terraform.lock.hcl
+
+# uv
+uv.lock

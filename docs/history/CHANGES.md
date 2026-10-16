@@ -1,4 +1,7 @@
-# Changelog
+# Changelog (historical)
+
+> This file is no longer maintained; it stops at v3.4.1.
+> Later releases are described in the [GitHub releases](https://github.com/GlobalFishingWatch/pipe-encounters/releases).
 
 All notable changes to this project will be documented in this file.
 

@@ -5,45 +5,46 @@ services:
       - "gcp:/root/.config/"
     entrypoint: gcloud
 
-  dev:
+  pipeline:
+    image: gfw/pipe-encounters-dev
     build:
-      context: .
       target: dev
-    image: gfw/pipe-encounters
+    volumes:
+      - ".:/opt/project"
+      - "gcp:/root/.config/"
+    entrypoint: "pipe-encounters"
+
+  dev: &dev
+    image: gfw/pipe-encounters-dev
+    build:
+      target: dev
     volumes:
       - ".:/opt/project"
       - "gcp:/root/.config/"
     entrypoint: /bin/bash
 
-  create_raw_encounters:
-    build:
-      context: .
-      target: dev
-    image: gfw/pipe-encounters
+  dev_no_gcp:
+    image: gfw/pipe-encounters-dev
+    # Dev container without GCP credentials.
+    <<: *dev
     volumes:
       - ".:/opt/project"
-      - "gcp:/root/.config/"
-    entrypoint: ["pipe-encounters", "create_raw_encounters"]
 
-  merge_encounters:
+  prod:
+    image: gfw/pipe-encounters-prod
     build:
-      context: .
-      target: dev
-    image: gfw/pipe-encounters
-    volumes:
-      - ".:/opt/project"
-      - "gcp:/root/.config/"
-    entrypoint: ["pipe-encounters", "merge_encounters"]
+      target: prod
+    entrypoint: /bin/bash
 
   test:
+    image: gfw/pipe-encounters-test
     # Runs tests using the production Docker image.
     # Intended to be executed in the GitHub CI environment.
     build:
-      context: .
       target: test
     entrypoint: "pytest -v"
 
+# Volume to hold GCP authentication
 volumes:
   gcp:
-    external: True
-
+    external: true
