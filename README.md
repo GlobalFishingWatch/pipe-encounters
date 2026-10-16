@@ -15,33 +15,35 @@
   </a>
 </p>
 
-[git workflow documentation]: GITHUB-FLOW.md
+[contributing guide]: https://github.com/GlobalFishingWatch/python-app-template/blob/main/CONTRIBUTING.md
+[preparing the development environment]: https://github.com/GlobalFishingWatch/python-app-template/blob/main/CONTRIBUTING.md#preparing-the-development-environment
+[git workflow]: https://github.com/GlobalFishingWatch/python-app-template/blob/main/CONTRIBUTING.md#git-workflow
+[python-app-template]: https://github.com/GlobalFishingWatch/python-app-template
+[Makefile]: Makefile
 
 This repository contains the encounters pipeline, which finds vessel encounters
 based on AIS messages.
 
+# Development
+
+First, clone the repository:
+
+```shell
+git clone https://github.com/GlobalFishingWatch/pipe-encounters.git
+cd pipe-encounters
+```
+
+Then, from the cloned repository, follow the [contributing guide]
+shared by the repositories created from [python-app-template]:
+[preparing the development environment] (Docker setup, installing dependencies, pre-commit hooks)
+and the [git workflow].
+
+The [Makefile] exposes the usual targets:
+`make docker-build`, `make docker-gcp`, `make docker-shell`, `make test`, `make format`, `make lint`,
+among others -- run `make help` for the full list.
+No repository-specific system dependency is required.
+
 # Running
-
-## Dependencies
-
-You just need [docker](https://www.docker.com/) and
-[docker-compose](https://docs.docker.com/compose/) in your machine to run the
-pipeline. No other dependency is required.
-
-## Git Workflow
-
-Please refer to our [git workflow documentation] to know how to manage branches in this repository.
-
-## Setup
-
-The pipeline reads it's input from BigQuery, so you need to first authenticate
-with your google cloud account inside the docker images. To do that, you need
-to run this command and follow the instructions:
-
-
-```
-docker compose run gcloud auth application-default login
-```
 
 ## Overview
 
