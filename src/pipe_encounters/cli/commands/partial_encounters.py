@@ -5,7 +5,8 @@ from typing import Any
 
 from gfw.common.cli import Command, Option, date_range_options
 
-from pipe_encounters import create_raw_pipeline
+from pipe_encounters.pipelines.partial_encounters import main
+from pipe_encounters.pipelines.partial_encounters.config import PartialEncountersConfig
 
 
 DESCRIPTION = """\
@@ -82,4 +83,4 @@ class PartialEncounters(Command):
 
     def run(self, config: SimpleNamespace, **kwargs: Any) -> Any:
         """Runs the pipeline with the resolved configuration."""
-        return create_raw_pipeline.run(config, **kwargs)
+        return main.run(PartialEncountersConfig.from_namespace(config), **kwargs)

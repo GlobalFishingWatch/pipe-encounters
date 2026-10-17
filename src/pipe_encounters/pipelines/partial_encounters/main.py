@@ -4,7 +4,6 @@ import logging
 import apache_beam as beam
 import pytz
 
-from types import SimpleNamespace
 from typing import Any
 
 from apache_beam import Filter, Flatten, Map
@@ -15,6 +14,7 @@ from gfw.common.beam.pipeline.base import Pipeline
 
 from pipe_encounters.objects.encounter import RawEncounter
 from pipe_encounters.objects.record import Record
+from pipe_encounters.pipelines.partial_encounters.config import PartialEncountersConfig
 from pipe_encounters.schemas.output import build_raw_encounter
 from pipe_encounters.schemas.utils import schema_to_obj
 from pipe_encounters.transforms.add_id import AddRawEncounterId
@@ -29,10 +29,8 @@ from pipe_encounters.utils.ver import __version__
 RESAMPLE_INCREMENT_MINUTES = 10.0
 PRECURSOR_DAYS = 1
 
-ERROR_EMPTY_RANGE = "end_date ({1}) must be after start_date ({0})."
 
-
-def get_description(config: SimpleNamespace):
+def get_description(config: PartialEncountersConfig):
     return f"""\
 Created by the encounters_pipeline: {__version__}.
 * Creates raw encounters, reads the data from source and computes encounters over windows between start_date and end_date.  # noqa
@@ -111,7 +109,7 @@ def check_schema(x, schema):
     return x
 
 
-def run(config: SimpleNamespace, **kwargs: Any) -> int:
+def run(config: PartialEncountersConfig, **kwargs: Any) -> int:
     pipeline = Pipeline(
         unparsed_args=config.unknown_unparsed_args,
         labels=config.labels,
@@ -121,10 +119,8 @@ def run(config: SimpleNamespace, **kwargs: Any) -> int:
     project = pipeline.cloud_options.project
     p = pipeline.pipeline
 
-    # The CLI's end date is exclusive; the pipeline works on the last day it includes.
+    # The end date is exclusive; the pipeline works on the last day it includes.
     last_date = config.end_date - datetime.timedelta(days=1)
-    if last_date < config.start_date:
-        raise ValueError(ERROR_EMPTY_RANGE.format(config.start_date, config.end_date))
 
     start_date = datetime.datetime.combine(config.start_date, datetime.time.min, tzinfo=pytz.utc)
     end_date = datetime.datetime.combine(last_date, datetime.time.min, tzinfo=pytz.utc)
