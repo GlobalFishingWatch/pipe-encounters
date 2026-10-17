@@ -29,6 +29,8 @@ from pipe_encounters.utils.ver import __version__
 RESAMPLE_INCREMENT_MINUTES = 10.0
 PRECURSOR_DAYS = 1
 
+ERROR_EMPTY_RANGE = "end_date ({1}) must be after start_date ({0})."
+
 
 def get_description(config: SimpleNamespace):
     return f"""\
@@ -40,11 +42,12 @@ Created by the encounters_pipeline: {__version__}.
 * Minimum minutes of vessel adjacency before we have an encounter: {config.min_encounter_time_minutes}
 * Maximum gap between positions to interpolate across (seconds): {config.max_gap_seconds}
 * Gaps of exactly max_gap_seconds are treated as interpolatable: {config.max_gap_seconds_inclusive}
-* Last processing date range: [{config.start_date}, {config.end_date}].
+* Last processing date range: [{config.start_date}, {config.end_date}).
 """
 
 
-def create_queries(args):
+def create_queries(args, start_date, end_date):
+    """Yields the queries that read the positions of [start_date, end_date], both inclusive."""
     template = """
     SELECT
       lat        AS lat,
@@ -67,9 +70,6 @@ def create_queries(args):
             with open(args.ssvid_filter[1:]) as f:
                 filter_core = f.read()
         condition = f"AND ssvid in ({filter_core})"
-
-    start_date = datetime.datetime.strptime(args.start_date, "%Y-%m-%d")
-    end_date = datetime.datetime.strptime(args.end_date, "%Y-%m-%d")
 
     for table in args.bq_in_positions:
         if "::" in table:
@@ -121,16 +121,19 @@ def run(config: SimpleNamespace, **kwargs: Any) -> int:
     project = pipeline.cloud_options.project
     p = pipeline.pipeline
 
-    start_date = datetime.datetime.strptime(config.start_date, "%Y-%m-%d").replace(
-        tzinfo=pytz.utc
-    )
-    end_date = datetime.datetime.strptime(config.end_date, "%Y-%m-%d").replace(tzinfo=pytz.utc)
+    # The CLI's end date is exclusive; the pipeline works on the last day it includes.
+    last_date = config.end_date - datetime.timedelta(days=1)
+    if last_date < config.start_date:
+        raise ValueError(ERROR_EMPTY_RANGE.format(config.start_date, config.end_date))
+
+    start_date = datetime.datetime.combine(config.start_date, datetime.time.min, tzinfo=pytz.utc)
+    end_date = datetime.datetime.combine(last_date, datetime.time.min, tzinfo=pytz.utc)
 
     schema = build_raw_encounter()
 
     sources = [
         (p | f"Read_{i}" >> ReadSources(query=query, project=project, labels=config.labels))
-        for (i, query) in enumerate(create_queries(config))
+        for (i, query) in enumerate(create_queries(config, config.start_date, last_date))
     ]
 
     writer = WriteEncountersToBQ(
@@ -166,7 +169,7 @@ def run(config: SimpleNamespace, **kwargs: Any) -> int:
 
     # Ensure we delete any existing rows from the date to be processed.
     # Needed to maintain consistency we re-processing dates.
-    writer.delete_rows(start_date=config.start_date, end_date=config.end_date)
+    writer.delete_rows(start_date=config.start_date, end_date=last_date)
 
     result = p.run()
 

@@ -3,7 +3,7 @@
 from types import SimpleNamespace
 from typing import Any
 
-from gfw.common.cli import Command, Option
+from gfw.common.cli import Command, Option, date_range_options
 
 from pipe_encounters import create_raw_pipeline
 
@@ -23,27 +23,26 @@ Positions are resampled to a 10-minute grid, interpolating across gaps shorter t
 max-gap-seconds and extrapolating up to max-gap-seconds before the first and after the
 last position of each segment-day. Encounters whose end date falls in the processed range
 are appended to the output table, after deleting the range's existing rows.
+The range starts at start-date and ends before end-date.
 
 Besides the arguments defined here, you can also pass any pipeline option
 defined for Apache Beam PipelineOptions class. For more information, see
     https://cloud.google.com/dataflow/docs/reference/pipeline-options#python.\n
 """
 
-HELP_IN_POSITIONS = (
+HELP_POSITIONS = (
     "BigQuery tables to pull position messages from. Each may be prefixed by 'ID::' to prefix "
     "its segment ids with 'ID:', which keeps the ids of different sources (e.g. AIS and VMS) "
     "distinct."
 )
-HELP_OUT_PARTIAL_ENCOUNTERS = "BigQuery table in which to append the partial encounters."
-HELP_START_DATE = "First date to process."
-HELP_END_DATE = "Last date (inclusive) to process."
-HELP_MAX_ENCOUNTER_DIST_KM = "Maximum distance (km) between two vessels to be in an encounter."
-HELP_MIN_ENCOUNTER_TIME_MINUTES = "Minimum duration (minutes) of a piece of an encounter."
-HELP_MAX_GAP_SECONDS = (
+HELP_OUTPUT = "BigQuery table in which to append the partial encounters."
+HELP_MAX_DIST = "Maximum distance (km) between two vessels to be in an encounter."
+HELP_MIN_TIME = "Minimum duration (minutes) of a piece of an encounter."
+HELP_MAX_GAP = (
     "Gaps between positions longer than this (seconds) are not interpolated across, "
     "so no encounter can be detected there."
 )
-HELP_MAX_GAP_SECONDS_INCLUSIVE = (
+HELP_INCLUSIVE = (
     "Also interpolate across gaps of exactly max-gap-seconds. "
     "Off by default, which matches the legacy behavior."
 )
@@ -70,36 +69,13 @@ class PartialEncounters(Command):
     def options(self) -> list[Option]:
         """The command's options."""
         return [
-            Option(
-                "--bq-in-positions", type=str, nargs="+", required=True, help=HELP_IN_POSITIONS
-            ),
-            Option(
-                "--bq-out-partial-encounters",
-                type=str,
-                required=True,
-                help=HELP_OUT_PARTIAL_ENCOUNTERS,
-            ),
-            Option("--start-date", type=str, required=True, help=HELP_START_DATE),
-            Option("--end-date", type=str, required=True, help=HELP_END_DATE),
-            Option(
-                "--max-encounter-dist-km",
-                type=float,
-                required=True,
-                help=HELP_MAX_ENCOUNTER_DIST_KM,
-            ),
-            Option(
-                "--min-encounter-time-minutes",
-                type=float,
-                required=True,
-                help=HELP_MIN_ENCOUNTER_TIME_MINUTES,
-            ),
-            Option("--max-gap-seconds", type=int, default=3600, help=HELP_MAX_GAP_SECONDS),
-            Option(
-                "--max-gap-seconds-inclusive",
-                type=bool,
-                default=False,
-                help=HELP_MAX_GAP_SECONDS_INCLUSIVE,
-            ),
+            Option("--bq-in-positions", type=str, nargs="+", required=True, help=HELP_POSITIONS),
+            Option("--bq-out-partial-encounters", type=str, required=True, help=HELP_OUTPUT),
+            *date_range_options(),
+            Option("--max-encounter-dist-km", type=float, required=True, help=HELP_MAX_DIST),
+            Option("--min-encounter-time-minutes", type=float, required=True, help=HELP_MIN_TIME),
+            Option("--max-gap-seconds", type=int, default=3600, help=HELP_MAX_GAP),
+            Option("--max-gap-seconds-inclusive", type=bool, default=False, help=HELP_INCLUSIVE),
             Option("--ssvid-filter", type=str, help=HELP_SSVID_FILTER),
             Option("--wait-for-job", type=bool, default=False, help=HELP_WAIT_FOR_JOB),
         ]

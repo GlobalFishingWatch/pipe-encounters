@@ -1,5 +1,7 @@
 import argparse
 
+from datetime import date
+
 import pytest
 
 from pipe_encounters.cli import main
@@ -10,7 +12,7 @@ BASE_ARGS = [
     "--bq-in-positions", "project.dataset.messages",
     "--bq-out-partial-encounters", "project.dataset.raw_encounters",
     "--start-date", "2024-01-01",
-    "--end-date", "2024-01-07",
+    "--end-date", "2024-01-08",
     "--max-encounter-dist-km", "0.5",
     "--min-encounter-time-minutes", "120",
     "--labels", "environment=test",
@@ -28,8 +30,8 @@ def test_cli_executes_run_with_the_config(run):
     config = run.call_args.args[0]
     assert config.bq_in_positions == ["project.dataset.messages"]
     assert config.bq_out_partial_encounters == "project.dataset.raw_encounters"
-    assert config.start_date == "2024-01-01"
-    assert config.end_date == "2024-01-07"
+    assert config.start_date == date(2024, 1, 1)
+    assert config.end_date == date(2024, 1, 8)
     assert config.max_encounter_dist_km == 0.5
     assert config.min_encounter_time_minutes == 120.0
     assert config.max_gap_seconds == 3600
@@ -79,3 +81,11 @@ def test_config_file_beam_options_reach_the_pipeline(mocker, tmp_path):
         "project": "test-project",
         "max_num_workers": 50,
     }
+
+
+def test_run_rejects_an_empty_date_range(mocker):
+    mocker.patch("pipe_encounters.create_raw_pipeline.Pipeline")
+    args = [a.replace("2024-01-08", "2024-01-01") for a in BASE_ARGS]
+
+    with pytest.raises(ValueError, match="must be after start_date"):
+        main.run(args)

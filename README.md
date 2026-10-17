@@ -50,8 +50,8 @@ No repository-specific system dependency is required.
 The pipeline takes `start_date` and `end_date`. The pipeline pads `start_date`
 by one day to warm up, reads the data from from `source_table` and computes
 encounters over the specified window.
-In incremental mode, `start_date` and `end_date` would be on the same date.  The results
-of this encounter are *appended* to the specified `raw_sink` table. A second pipeline
+In incremental mode, `end_date` is the day after `start_date`, since the end date is
+exclusive. The partial encounters are *appended* to the `bq_out_partial_encounters` table. A second pipeline
 is then run over this second table, merging encounters that are close in time into
 one long encounter and *replacing* the table specified in `sink` with the merged results.
 

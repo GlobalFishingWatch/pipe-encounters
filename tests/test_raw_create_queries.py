@@ -1,3 +1,5 @@
+from datetime import date
+
 from pipe_encounters.create_raw_pipeline import create_queries
 
 
@@ -25,7 +27,8 @@ class DummyOptions(object):
 
 def test_create_queries_1():
     options = DummyOptions("2016-01-01", "2016-01-01")
-    assert [x.strip() for x in create_queries(options)] == [
+    queries = create_queries(options, date(2016, 1, 1), date(2016, 1, 1))
+    assert [x.strip() for x in queries] == [
         x.strip()
         for x in [
             """
@@ -47,7 +50,8 @@ def test_create_queries_1():
 
 def test_create_queries_2():
     options = DummyOptions("2012-5-01", "2017-05-15")
-    assert [x.strip() for x in create_queries(options)] == [
+    queries = create_queries(options, date(2012, 5, 1), date(2017, 5, 15))
+    assert [x.strip() for x in queries] == [
         x.strip()
         for x in [
             """

@@ -18,7 +18,7 @@ EXAMPLES = (
     "pipe-encounters partial-encounters "
     "--bq-in-positions project.dataset.messages "
     "--bq-out-partial-encounters project.dataset.raw_encounters "
-    "--start-date 2024-01-01 --end-date 2024-01-01 "
+    "--start-date 2024-01-01 --end-date 2024-01-02 "
     "--max-encounter-dist-km 0.5 --min-encounter-time-minutes 120 "
     "--labels environment=development resource_creator=tomas-link",
     "pipe-encounters partial-encounters -c config/partial-encounters/bq-1-day.yaml",
