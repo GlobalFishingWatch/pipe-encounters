@@ -5,7 +5,7 @@
     <img alt="Coverage" src="https://codecov.io/gh/GlobalFishingWatch/pipe-encounters/graph/badge.svg?token=XS7HTOWWYG">
   </a>
   <a>
-    <img alt="Python versions" src="https://img.shields.io/badge/python-3.12-blue">
+    <img alt="Python versions" src="https://img.shields.io/badge/python-3.12%20%7C%203.13-blue">
   </a>
   <a>
     <img alt="Apache Beam version" src="https://img.shields.io/badge/ApacheBeam-2.76.0-orange">
@@ -15,102 +15,253 @@
   </a>
 </p>
 
+Detects encounters between vessels at sea:
+two vessels that stay close to each other for hours, away from port --
+from vessel position data, AIS or VMS.
+
 [contributing guide]: https://github.com/GlobalFishingWatch/python-app-template/blob/main/CONTRIBUTING.md
 [preparing the development environment]: https://github.com/GlobalFishingWatch/python-app-template/blob/main/CONTRIBUTING.md#preparing-the-development-environment
 [git workflow]: https://github.com/GlobalFishingWatch/python-app-template/blob/main/CONTRIBUTING.md#git-workflow
 [python-app-template]: https://github.com/GlobalFishingWatch/python-app-template
+[gfw-common]: https://github.com/GlobalFishingWatch/gfw-common
+[pipe-events]: https://github.com/GlobalFishingWatch/pipe-events
+[pipe-segment]: https://github.com/GlobalFishingWatch/pipe-segment
 [Makefile]: Makefile
 
-This repository contains the encounters pipeline, which finds vessel encounters
-based on AIS messages.
+**Table of contents**:
+- [Introduction](#introduction)
+- [How it works](#how-it-works)
+- [Known issues](#known-issues)
+- [Development](#development)
+- [Usage](#usage) * [Using the CLI](#using-the-cli) * [Config files](#config-files)
+- [References](#references)
 
-# Development
+## Introduction
+
+<div align="justify">
+
+Some of the most relevant vessel activity at sea involves two vessels, not one:
+a fishing vessel meeting a refrigerated cargo vessel to transfer its catch (transshipment),
+or a bunker vessel refueling a fishing fleet far from port.
+Transshipment at sea can be legitimate,
+but it can also be used to hide where fish was caught,
+which makes these meetings a key input to monitoring and risk analysis. [[2]](#2)
+Global Fishing Watch finds them in the same vessel position data
+it uses to track fishing activity worldwide. [[1]](#1)
+
+`pipe-encounters` detects those meetings.
+Global Fishing Watch defines an *encounter* as two vessels within 500 meters of each other
+for at least 2 hours, at a median speed of less than 2 knots,
+and at least 10 km from a coastal anchorage. [[2]](#2) [[3]](#3)
+Positions are estimated on a 10-minute grid,
+and encounters between the same two vessels less than 4 hours apart
+are consolidated into one. [[3]](#3)
+
+This repository detects the vessel pairs that stay close together for long enough, away from port,
+and joins them into encounters.
+The published encounter events are built from its output by [pipe-events],
+which also applies the median speed condition and adds region and vessel information.
+
+Both commands run in production *daily*, against both AIS and VMS vessel tracks.
+
+</div>
+
+## How it works
+
+<div align="justify">
+
+The pipeline is a chain of two stages, each its own CLI command (see [Usage](#usage)):
+
+</div>
+
+```mermaid
+---
+config:
+  look: classic
+  layout: dagre
+  flowchart:
+    wrappingWidth: 400
+    padding: 8
+---
+flowchart TD
+    MP[("<b>messages_positions</b>")]
+    SI[("<b>segment_info</b>")]
+    SM[("<b>spatial_measures</b>")]
+    RE[("<b>raw_encounters</b>")]
+    EN[("<b>encounters</b>")]
+    EV[("<b>product_events</b>")]
+    PC{{"<b>partial-encounters</b>"}}
+    JC{{"<b>encounters</b>"}}
+
+    MP ==> PC ==> RE ==> JC ==> EN -. pipe-events .-> EV
+    SI ==> JC
+    SM ==> JC
+
+    classDef process fill:#d8f0d8,stroke:#2e7d32,color:#1b5e20,stroke-width:1.5px
+    class PC,JC process
+```
+
+<div align="justify">
+
+The table names are the production ones.
+`product_events` is currently generated from `encounters` by [pipe-events],
+which publishes the encounter events.
+
+- **`partial-encounters`** processes the position messages of each track segment
+  (a piece of a vessel's track, as split by [pipe-segment]), one UTC day at a time.
+  It resamples each segment-day onto a 10-minute grid,
+  interpolating across gaps between positions shorter than `max-gap-seconds` (1 hour by default),
+  and extrapolating up to `max-gap-seconds` before the first and after the last position,
+  within the day.
+  At each 10-minute step, it finds the other segments within `max-encounter-dist-km`,
+  and keeps every unbroken run next to the same segment
+  that lasts at least `min-encounter-time-minutes`.
+  Each output row is a *piece* of an encounter, not a whole one:
+  an encounter that crosses midnight is split into one piece per day,
+  each piece appears twice, once from each segment's side,
+  and pieces are identified by segment, not by vessel.
+  The rows of the processed dates are appended to the output table,
+  after deleting the dates' existing rows.
+- **`encounters`** maps each partial encounter's segments to vessel ids,
+  drops the ones within 10 km of a port, or without a positive distance from shore,
+  and joins the pieces of the same two vessels while they are less than
+  `min-hours-between-encounters` (4 hours by default) apart:
+  across days, segments, and both vessels' sides.
+  Each output row is one encounter between two vessels.
+  The output table is replaced on every run, so it's run over the whole history.
+
+</div>
+
+## Known issues
+
+<div align="justify">
+
+The current output has some known issues, to be fixed in the pipeline itself:
+
+- A piece of an encounter shorter than `min-encounter-time-minutes` on its own day is dropped
+  by `partial-encounters`, so `encounters` can't join it to the rest of the encounter:
+  an encounter from 23:00 to 02:00 loses the hour before midnight.
+- The extrapolated positions before the first and after the last position of a segment-day
+  can extend an encounter up to `max-gap-seconds` beyond the positions that support it,
+  and they're computed with the course converted to radians twice, so they head the wrong way.
+- `encounters` adds up the point counts of both sides of each piece,
+  so the vessels' point counts are doubled.
+- `partial-encounters` deletes the processed dates by the start of each piece,
+  but writes the pieces by their end,
+  so reprocessing dates can duplicate the pieces that start the day before.
+
+</div>
+
+## Development
+
+<div align="justify">
 
 First, clone the repository:
+
+</div>
 
 ```shell
 git clone https://github.com/GlobalFishingWatch/pipe-encounters.git
 cd pipe-encounters
 ```
 
+<div align="justify">
+
 Then, from the cloned repository, follow the [contributing guide]
 shared by the repositories created from [python-app-template]:
 [preparing the development environment] (Docker setup, installing dependencies, pre-commit hooks)
 and the [git workflow].
 
-The [Makefile] exposes the usual targets:
-`make docker-build`, `make docker-gcp`, `make docker-shell`, `make test`, `make format`, `make lint`,
-among others -- run `make help` for the full list.
+This repository's CLI and Apache Beam pipeline infrastructure are built on [gfw-common].
+
+Once your environment is set up, the [Makefile] in this repository exposes the usual targets:
+`make docker-build`, `make docker-shell`, `make test`, `make format`, `make lint`, among others --
+run `make help` for the full list.
 No repository-specific system dependency is required.
 
-# Running
+</div>
 
-## Overview
+## Usage
 
-The pipeline takes `start_date` and `end_date`. The pipeline pads `start_date`
-by one day to warm up, reads the data from from `source_table` and computes
-encounters over the specified window.
-In incremental mode, `end_date` is the day after `start_date`, since the end date is
-exclusive. The partial encounters are *appended* to the `bq_out_partial_encounters` table. The second command,
-`encounters`, then joins the pieces that are close in time into one encounter per pair of
-vessels, *replacing* the `bq_out_encounters` table with the results.
+### Using the CLI
 
-## CLI
+<div align="justify">
 
-The pipeline includes a CLI that can be used to start both local test runs and
-remote full runs. Just run `docker compose run pipeline --help` and follow the
-instructions there.
+`pipe-encounters`'s CLI covers both stages of the pipeline.
+Run `pipe-encounters -h` for the authoritative, up-to-date list,
+or `pipe-encounters <command> -h` for a command's own parameters.
 
-### Examples:
+</div>
 
-The first step, `partial-encounters`, detects the pieces of encounters for a range of dates:
+<table>
+<tr>
+<th width="1%" nowrap>Command</th>
+<th>Description</th>
+</tr>
+<tr>
+<td width="1%" nowrap><code>partial&#8209;encounters</code></td>
+<td>Detects the pieces of encounters, per UTC day and pair of track segments,
+and appends them to a table.</td>
+</tr>
+<tr>
+<td width="1%" nowrap><code>encounters</code></td>
+<td>Joins the partial encounters into one row per encounter between two vessels,
+replacing a table.</td>
+</tr>
+</table>
 
-        docker compose run pipeline partial-encounters \
-                --bq-in-positions SOURCE_TABLE \
-                --bq-out-partial-encounters RAW_TABLE \
-                --start-date DATE \
-                --end-date DATE \
-                --max-encounter-dist-km DISTANCE \
-                --min-encounter-time-minutes TIME \
-                --labels environment=development resource_creator=YOUR_NAME \
-                --project world-fishing-827 \
-                --runner DataflowRunner \
-                --region us-central1
+<div align="justify">
 
-or, with a configuration file (command-line arguments take precedence over it):
+Date ranges start at `--start-date` and end before `--end-date`.
+`--bq-in-positions` and `--bq-in-segment-info` accept several tables,
+each optionally prefixed by `ID::` to keep the segment ids of different sources (e.g. AIS and VMS) distinct.
+Besides each command's own options, they accept any Apache Beam pipeline option,
+like `--runner` or `--max-num-workers`.
 
-        docker compose run pipeline partial-encounters -c config/partial-encounters/bq-1-day.yaml
+Example:
 
-Run `docker compose run pipeline partial-encounters --help` for all its options.
+</div>
 
-The second step, `encounters`, joins the partial encounters into one row per encounter between
-two vessels. It replaces its output table, so it's usually run over the whole history:
+```shell
+pipe-encounters partial-encounters \
+    --bq-in-positions world-fishing-827.pipe_production_v20201001.position_messages \
+    --bq-out-partial-encounters world-fishing-827.scratch_tomas_ttl30d.raw_encounters \
+    --start-date 2024-01-01 --end-date 2024-01-02 \
+    --max-encounter-dist-km 0.5 --min-encounter-time-minutes 120 \
+    --labels environment=development resource_creator=tomas-link project=ais stage=encounters
+```
 
-        docker compose run pipeline encounters \
-                --bq-in-partial-encounters RAW_TABLE \
-                --bq-in-segment-info SEGMENT_INFO_TABLE \
-                --bq-in-spatial-measures SPATIAL_MEASURES_TABLE \
-                --bq-out-encounters ENCOUNTERS_TABLE \
-                --start-date FIRST_DATE \
-                --end-date DATE \
-                --labels environment=development resource_creator=YOUR_NAME \
-                --project world-fishing-827 \
-                --runner DataflowRunner \
-                --region us-central1
+### Config files
 
-or, with a configuration file:
+<div align="justify">
 
-        docker compose run pipeline encounters -c config/encounters/bq-full-history.yaml
+Besides plain CLI flags,
+every command also accepts a config file via the built-in `-c`/`--config-file` flag (YAML or JSON),
+with CLI flags taking precedence over matching config-file keys.
+A runnable example for each command lives under `config/<command-name>/`,
+e.g. [config/partial-encounters/bq-1-day.yaml](config/partial-encounters/bq-1-day.yaml) --
+use these as a starting point rather than hand-writing one from scratch.
 
-Run `docker compose run pipeline encounters --help` for all its options.
+</div>
 
-Partial encounters are identified by segment id, since it's a stable (static) identifier.
-The encounters are joined by vessel id, which does a better job stitching segments together,
-but isn't stable. That works because joining happens later in the pipeline and runs over the
-whole history every day.
+```shell
+pipe-encounters partial-encounters -c config/partial-encounters/bq-1-day.yaml
+pipe-encounters encounters -c config/encounters/bq-full-history.yaml
+```
 
-Note that the partial encounters table needs to be persistent, since each run appends new dates.
+## References
 
+<a id="1">[1]</a> Kroodsma, D. A., Mayorga, J., Hochberg, T., Miller, N. A., Boerder, K., Ferretti,
+F., Wilson, A., Bergman, B., White, T. D., Block, B. A., Woods, P., Sullivan, B., Costello, C. J.,
+Worm, B. (2018). Tracking the global footprint of fisheries. Science, 359(6378), 904-908.
+https://doi.org/10.1126/science.aao5646
+
+<a id="2">[2]</a> Miller, N. A., Roan, A., Hochberg, T., Amos, J., Kroodsma, D. A. (2018).
+Identifying Global Patterns of Transshipment Behavior. Frontiers in Marine Science, 5, 240.
+https://doi.org/10.3389/fmars.2018.00240
+
+<a id="3">[3]</a> Global Fishing Watch. What is a vessel encounter? (FAQ).
+https://globalfishingwatch.org/faqs/what-is-a-vessel-encounter/
 
 # License
 
