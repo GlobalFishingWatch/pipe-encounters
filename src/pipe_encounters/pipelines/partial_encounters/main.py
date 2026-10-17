@@ -1,52 +1,26 @@
+"""Partial-encounters pipeline: detects the pieces of vessel encounters."""
+
 import datetime
-import logging
+
+from typing import Any, Callable
 
 import apache_beam as beam
-import pytz
 
-from typing import Any
-
-from apache_beam import Filter, Flatten, Map
-from apache_beam.options.pipeline_options import StandardOptions
-from apache_beam.runners import PipelineState
-from apache_beam.transforms.window import TimestampedValue
 from gfw.common.beam.pipeline.base import Pipeline
+from gfw.common.beam.pipeline.dag import LinearDag
+from gfw.common.beam.pipeline.hooks import create_table_hook, delete_events_hook
+from gfw.common.beam.transforms import ReadFromBigQuery, WriteToBigQueryWrapper
+from gfw.common.bigquery.helper import BigQueryHelper
 
-from pipe_encounters.core.encounter import RawEncounter
-from pipe_encounters.core.record import Record
+from pipe_encounters.hooks import update_table_metadata_hook
 from pipe_encounters.pipelines.partial_encounters.config import PartialEncountersConfig
 from pipe_encounters.pipelines.partial_encounters.queries import PositionsQuery
-from pipe_encounters.schemas.output import build_raw_encounter
-from pipe_encounters.schemas.utils import schema_to_obj
-from pipe_encounters.transforms.add_id import AddRawEncounterId
-from pipe_encounters.pipelines.partial_encounters.transforms.compute_adjacency import (
-    ComputeAdjacency,
+from pipe_encounters.pipelines.partial_encounters.table_config import (
+    PartialEncountersTableConfig,
+    PartialEncountersTableDescription,
 )
-from pipe_encounters.pipelines.partial_encounters.transforms.compute_encounters import (
-    ComputeEncounters,
-)
-from pipe_encounters.transforms.readers import ReadSources
-from pipe_encounters.pipelines.partial_encounters.transforms.resample import Resample
-from pipe_encounters.transforms.writers import WriteEncountersToBQ
+from pipe_encounters.pipelines.partial_encounters.transforms.core import DetectPartialEncounters
 from pipe_encounters.utils.ver import __version__
-
-
-RESAMPLE_INCREMENT_MINUTES = 10.0
-PRECURSOR_DAYS = 1
-
-
-def get_description(config: PartialEncountersConfig):
-    return f"""\
-Created by the encounters_pipeline: {__version__}.
-* Creates raw encounters, reads the data from source and computes encounters over windows between start_date and end_date.  # noqa
-* https://github.com/GlobalFishingWatch/encounters_pipeline
-* Sources: {config.bq_in_positions}
-* Maximum distance for vessels to be elegible (km): {config.max_encounter_dist_km}
-* Minimum minutes of vessel adjacency before we have an encounter: {config.min_encounter_time_minutes}
-* Maximum gap between positions to interpolate across (seconds): {config.max_gap_seconds}
-* Gaps of exactly max_gap_seconds are treated as interpolatable: {config.max_gap_seconds_inclusive}
-* Last processing date range: [{config.start_date}, {config.end_date}).
-"""
 
 
 def split_id_prefix(source: str) -> tuple[str, str]:
@@ -86,97 +60,111 @@ def positions_queries(config: PartialEncountersConfig) -> list[PositionsQuery]:
     return queries
 
 
-def check_schema(x, schema):
-    assert set(x.keys()) == set([x["name"] for x in schema]), x.keys()
-    for field in schema:
-        assert field["mode"] == "REQUIRED"
-        # TODO: support 'NULLABLE' and 'REPEATED'
-        ftype = field["type"]
-        val = x[field["name"]]
-        allowed_types_map = {
-            "STRING": (str,),
-            "INTEGER": (int,),
-            "FLOAT": (int, float),
-            "TIMESTAMP": (int, float),
-        }
-        if ftype not in allowed_types_map:
-            raise ValueError(f"unknown schema type {field}")
-        allowed_types = allowed_types_map[ftype]
-        assert isinstance(val, allowed_types), (field, val)
-    return x
+def run(
+    config: PartialEncountersConfig,
+    read_from_bigquery_factory: Callable = None,
+    write_to_bigquery_factory: Callable = None,
+    bq_client_factory: Callable = None,
+    **kwargs: Any,
+) -> None:
+    """Runs the partial-encounters pipeline.
 
+    Args:
+        config:
+            The pipeline's configuration.
 
-def run(config: PartialEncountersConfig, **kwargs: Any) -> int:
+        read_from_bigquery_factory:
+            Builds the transforms that read from BigQuery. Defaults to gfw-common's, mocked if
+            config.mock_bq_clients is set.
+
+        write_to_bigquery_factory:
+            Builds the transform that writes to BigQuery. Defaults to gfw-common's, mocked if
+            config.mock_bq_clients is set.
+
+        bq_client_factory:
+            Builds the BigQuery client of the table-metadata hook. Defaults to gfw-common's,
+            mocked if config.mock_bq_clients is set.
+
+        **kwargs:
+            Apache Beam pipeline options.
+    """
+    if read_from_bigquery_factory is None:
+        read_from_bigquery_factory = ReadFromBigQuery.get_client_factory(
+            mocked=config.mock_bq_clients
+        )
+    if write_to_bigquery_factory is None:
+        write_to_bigquery_factory = WriteToBigQueryWrapper.get_client_factory(
+            mocked=config.mock_bq_clients
+        )
+    if bq_client_factory is None:
+        bq_client_factory = BigQueryHelper.get_client_factory(mocked=config.mock_bq_clients)
+
+    # The end date is exclusive; the pieces are kept by the last day the range includes.
+    last_date = config.end_date - datetime.timedelta(days=1)
+
+    table_config = PartialEncountersTableConfig(
+        table_id=config.bq_out_partial_encounters,
+        description=PartialEncountersTableDescription(
+            version=__version__,
+            relevant_params={
+                "bq_in_positions": config.bq_in_positions,
+                "start_date": config.start_date,
+                "end_date": config.end_date,
+                "max_encounter_dist_km": config.max_encounter_dist_km,
+                "min_encounter_time_minutes": config.min_encounter_time_minutes,
+                "max_gap_seconds": config.max_gap_seconds,
+                "max_gap_seconds_inclusive": config.max_gap_seconds_inclusive,
+                "ssvid_filter": config.ssvid_filter,
+            },
+        ),
+    )
+
+    dag = LinearDag(
+        sources=[
+            ReadFromBigQuery.from_query(
+                query,
+                label=f"ReadPositions_{i}",
+                read_from_bigquery_factory=read_from_bigquery_factory,
+                read_from_bigquery_kwargs={"bigquery_job_labels": config.labels},
+            )
+            for i, query in enumerate(positions_queries(config))
+        ],
+        core=DetectPartialEncounters(
+            start_date=config.start_date,
+            last_date=last_date,
+            max_encounter_dist_km=config.max_encounter_dist_km,
+            min_encounter_time_minutes=config.min_encounter_time_minutes,
+            max_gap_seconds=config.max_gap_seconds,
+            max_gap_seconds_inclusive=config.max_gap_seconds_inclusive,
+            schema=table_config.schema,
+        ),
+        sinks=(
+            WriteToBigQueryWrapper(
+                table=table_config.table_id,
+                schema=table_config.schema,
+                write_to_bigquery_factory=write_to_bigquery_factory,
+                write_disposition=beam.io.BigQueryDisposition.WRITE_APPEND,
+                create_disposition=beam.io.BigQueryDisposition.CREATE_NEVER,
+            ),
+        ),
+    )
+
     pipeline = Pipeline(
+        dag=dag,
+        pre_hooks=[
+            create_table_hook(table_config, mock=config.mock_bq_clients),
+            delete_events_hook(
+                table_config,
+                start_date=config.start_date,
+                end_date=config.end_date,
+                mock=config.mock_bq_clients,
+            ),
+        ],
+        post_hooks=[update_table_metadata_hook(table_config, config.labels, bq_client_factory)],
         unparsed_args=config.unknown_unparsed_args,
         labels=config.labels,
         **config.unknown_parsed_args,
         **kwargs,
     )
-    project = pipeline.cloud_options.project
-    p = pipeline.pipeline
 
-    # The end date is exclusive; the pipeline works on the last day it includes.
-    last_date = config.end_date - datetime.timedelta(days=1)
-
-    start_date = datetime.datetime.combine(config.start_date, datetime.time.min, tzinfo=pytz.utc)
-    end_date = datetime.datetime.combine(last_date, datetime.time.min, tzinfo=pytz.utc)
-
-    schema = build_raw_encounter()
-
-    sources = [
-        (p | f"Read_{i}" >> ReadSources(query=q.render(), project=project, labels=config.labels))
-        for (i, q) in enumerate(positions_queries(config))
-    ]
-
-    writer = WriteEncountersToBQ(
-        table_id=config.bq_out_partial_encounters,
-        schema=schema,
-        project=project,
-        labels=config.labels,
-        description=get_description(config),
-        write_disposition=beam.io.BigQueryDisposition.WRITE_APPEND,
-    )
-
-    adjacencies = (  # noqa
-        sources
-        | Flatten()
-        | Record.FromDict()
-        | Resample(
-            increment_s=60 * RESAMPLE_INCREMENT_MINUTES,
-            max_gap_s=config.max_gap_seconds,
-            inclusive=config.max_gap_seconds_inclusive,
-        )
-        | ComputeAdjacency(max_adjacency_distance_km=config.max_encounter_dist_km)
-        | ComputeEncounters(
-            max_km_for_encounter=config.max_encounter_dist_km,
-            min_minutes_for_encounter=config.min_encounter_time_minutes,
-        )
-        | Filter(lambda x: start_date.date() <= x.end_time.date() <= end_date.date())
-        | RawEncounter.ToDict()
-        | AddRawEncounterId()
-        | Map(lambda x: TimestampedValue(x, x["end_time"]))
-        | Map(check_schema, schema=schema_to_obj(schema))
-        | writer
-    )
-
-    # Ensure we delete any existing rows from the date to be processed.
-    # Needed to maintain consistency we re-processing dates.
-    writer.delete_rows(start_date=config.start_date, end_date=last_date)
-
-    result = p.run()
-
-    success_states = set([PipelineState.DONE])
-
-    runner = pipeline.pipeline_options.view_as(StandardOptions).runner
-    if config.wait_for_job or runner == "DirectRunner":
-        result.wait_until_finish()
-        if result.state in success_states:
-            writer.update_table_metadata()
-    else:
-        success_states.add(PipelineState.RUNNING)
-        success_states.add(PipelineState.UNKNOWN)
-        success_states.add(PipelineState.PENDING)
-
-    logging.info("returning with result.state=%s" % result.state)
-    return 0 if result.state in success_states else 1
+    pipeline.run()
