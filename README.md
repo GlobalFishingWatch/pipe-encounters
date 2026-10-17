@@ -81,21 +81,28 @@ config:
   layout: dagre
   flowchart:
     wrappingWidth: 400
+    padding: 6
 ---
 flowchart TD
-    POS[("position messages")]
-    SEG[("segment info<br/>(segment → vessel)")]
-    SPM[("spatial measures<br/>(distance to shore and port)")]
-    PE{{"<b>partial-encounters</b><br/>detect pieces of encounters"}}
-    EN{{"<b>encounters</b><br/>join pieces into encounters"}}
-    EV[("encounter events<br/>(pipe-events)")]
+    MP[("<b>messages_positions</b>")]
+    SI[("<b>segment_info</b>")]
+    SM[("<b>spatial_measures</b>")]
+    RE[("<b>raw_encounters</b>")]
+    EN[("<b>encounters</b>")]
+    EV[("<b>product_events</b>")]
+    PC{{"<b>partial-encounters</b><br/>detect pieces of encounters"}}
+    JC{{"<b>encounters</b><br/>join pieces into encounters"}}
 
-    POS ==> PE ==> EN ==> EV
-    SEG ==> EN
-    SPM ==> EN
+    MP ==> PC ==> RE ==> JC ==> EN -. pipe-events .-> EV
+    SI ==> JC
+    SM ==> JC
 ```
 
 <div align="justify">
+
+The table names are the production ones.
+`product_events` is currently generated from `encounters` by [pipe-events],
+which publishes the encounter events.
 
 - **`partial-encounters`** processes the position messages of each track segment
   (a piece of a vessel's track, as split by [pipe-segment]), one UTC day at a time.
