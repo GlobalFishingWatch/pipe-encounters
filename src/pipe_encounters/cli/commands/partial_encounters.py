@@ -5,7 +5,8 @@ from typing import Any
 
 from gfw.common.cli import Command, Option, date_range_options
 
-from pipe_encounters import create_raw_pipeline
+from pipe_encounters.pipelines.partial_encounters import main
+from pipe_encounters.pipelines.partial_encounters.config import PartialEncountersConfig
 
 
 DESCRIPTION = """\
@@ -49,7 +50,7 @@ HELP_INCLUSIVE = (
 HELP_SSVID_FILTER = (
     "Subquery or list of ssvid to limit processing to. If prefixed by @, load from given path."
 )
-HELP_WAIT_FOR_JOB = "Wait until the job finishes before returning."
+HELP_MOCK_BQ = "If passed, mocks the BigQuery clients [Useful for development]."
 
 
 class PartialEncounters(Command):
@@ -77,9 +78,9 @@ class PartialEncounters(Command):
             Option("--max-gap-seconds", type=int, default=3600, help=HELP_MAX_GAP),
             Option("--max-gap-seconds-inclusive", type=bool, default=False, help=HELP_INCLUSIVE),
             Option("--ssvid-filter", type=str, help=HELP_SSVID_FILTER),
-            Option("--wait-for-job", type=bool, default=False, help=HELP_WAIT_FOR_JOB),
+            Option("--mock-bq-clients", type=bool, default=False, help=HELP_MOCK_BQ),
         ]
 
     def run(self, config: SimpleNamespace, **kwargs: Any) -> Any:
         """Runs the pipeline with the resolved configuration."""
-        return create_raw_pipeline.run(config, **kwargs)
+        return main.run(PartialEncountersConfig.from_namespace(config), **kwargs)

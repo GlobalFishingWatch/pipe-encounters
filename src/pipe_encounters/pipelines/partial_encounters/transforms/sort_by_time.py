@@ -6,7 +6,7 @@ from collections import defaultdict
 
 from apache_beam import Map, PTransform
 
-from ..objects.record import Record
+from pipe_encounters.core.record import Record
 
 
 # This should match the value from gpsdio-segment

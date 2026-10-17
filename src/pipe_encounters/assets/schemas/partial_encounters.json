@@ -1,0 +1,92 @@
+[
+  {
+    "name": "encounter_id",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "Unique encounter ID."
+  },
+  {
+    "name": "start_time",
+    "type": "TIMESTAMP",
+    "mode": "REQUIRED",
+    "description": "The start timestamp of the encounter (UTC)."
+  },
+  {
+    "name": "end_time",
+    "type": "TIMESTAMP",
+    "mode": "REQUIRED",
+    "description": "The end timestamp of the encounter (UTC)."
+  },
+  {
+    "name": "mean_latitude",
+    "type": "FLOAT",
+    "mode": "REQUIRED",
+    "description": "The mean latitude. These values are calculated for the raw segments when these values are computed as means over the interpolated points."
+  },
+  {
+    "name": "mean_longitude",
+    "type": "FLOAT",
+    "mode": "REQUIRED",
+    "description": "The mean longitude. These values are calculated for the raw segments when these values are computed as means over the interpolated points."
+  },
+  {
+    "name": "median_distance_km",
+    "type": "FLOAT",
+    "mode": "REQUIRED",
+    "description": "The median distance, measured in km."
+  },
+  {
+    "name": "median_speed_knots",
+    "type": "FLOAT",
+    "mode": "REQUIRED",
+    "description": "The median speed, measured in knots."
+  },
+  {
+    "name": "start_lat",
+    "type": "FLOAT",
+    "mode": "REQUIRED",
+    "description": "The beginning latitude where the encounter takes place."
+  },
+  {
+    "name": "start_lon",
+    "type": "FLOAT",
+    "mode": "REQUIRED",
+    "description": "The beginning longitude where the encounter takes place."
+  },
+  {
+    "name": "end_lat",
+    "type": "FLOAT",
+    "mode": "REQUIRED",
+    "description": "The end latitude where the encounter finished."
+  },
+  {
+    "name": "end_lon",
+    "type": "FLOAT",
+    "mode": "REQUIRED",
+    "description": "The end longitude where the encounter finished."
+  },
+  {
+    "name": "vessel_1_seg_id",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "The segment id of the vessel 1."
+  },
+  {
+    "name": "vessel_1_point_count",
+    "type": "INTEGER",
+    "mode": "REQUIRED",
+    "description": "The amount of the points of contact during encounter by vessel 1."
+  },
+  {
+    "name": "vessel_2_seg_id",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "The segment id of the vessel 2."
+  },
+  {
+    "name": "vessel_2_point_count",
+    "type": "INTEGER",
+    "mode": "REQUIRED",
+    "description": "The amount of the points of contact during encounter by vessel 2."
+  }
+]
