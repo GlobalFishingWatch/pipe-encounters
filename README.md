@@ -96,6 +96,9 @@ flowchart TD
     MP ==> PC ==> RE ==> JC ==> EN -. pipe-events .-> EV
     SI ==> JC
     SM ==> JC
+
+    classDef process fill:#d8f0d8,stroke:#2e7d32,color:#1b5e20,stroke-width:1.5px
+    class PC,JC process
 ```
 
 <div align="justify">
