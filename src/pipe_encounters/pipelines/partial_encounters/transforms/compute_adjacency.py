@@ -7,7 +7,7 @@ import s2sphere
 
 from apache_beam import FlatMap, GroupByKey, Map, PTransform
 
-from ..objects.annotated_record import AnnotatedRecord
+from pipe_encounters.core.annotated_record import AnnotatedRecord
 
 
 inf = float("inf")

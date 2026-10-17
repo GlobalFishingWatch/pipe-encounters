@@ -9,7 +9,7 @@ import six
 
 from apache_beam import FlatMap, GroupByKey, Map, PTransform
 
-from ..objects.encounter import Encounter
+from pipe_encounters.core.encounter import Encounter
 
 
 inf = float("inf")
