@@ -34,6 +34,3 @@ class PartialEncountersConfig(DatePipelineConfig):
 
     ssvid_filter: str = None
     """Subquery or list of ssvid to limit processing to, or a path to read it from, after @."""
-
-    wait_for_job: bool = False
-    """Wait until the job finishes before returning."""

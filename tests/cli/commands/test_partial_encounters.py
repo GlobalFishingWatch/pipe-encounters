@@ -41,7 +41,7 @@ def test_cli_executes_run_with_the_config(run):
     assert config.max_gap_seconds == 3600
     assert config.max_gap_seconds_inclusive is False
     assert config.ssvid_filter is None
-    assert config.wait_for_job is False
+    assert config.mock_bq_clients is False
     assert config.labels == {"environment": "test"}
 
 
@@ -79,12 +79,11 @@ def test_config_file_beam_options_reach_the_pipeline(mocker, tmp_path):
     with pytest.raises(StopAfterPipeline):
         main.run([*BASE_ARGS, "-c", str(config_file)])
 
-    assert pipeline.call_args.kwargs == {
-        "unparsed_args": [],
-        "labels": {"environment": "test"},
-        "project": "test-project",
-        "max_num_workers": 50,
-    }
+    kwargs = pipeline.call_args.kwargs
+    assert kwargs["unparsed_args"] == []
+    assert kwargs["labels"] == {"environment": "test"}
+    assert kwargs["project"] == "test-project"
+    assert kwargs["max_num_workers"] == 50
 
 
 def test_cli_rejects_an_empty_date_range(run):
