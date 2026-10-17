@@ -40,14 +40,14 @@ from vessel position data, AIS or VMS.
 
 <div align="justify">
 
-Global Fishing Watch processes billions of AIS position messages
-to track vessel activity at sea. [[1]](#1)
-Some of the most relevant of that activity involves two vessels, not one:
+Some of the most relevant vessel activity at sea involves two vessels, not one:
 a fishing vessel meeting a refrigerated cargo vessel to transfer its catch (transshipment),
 or a bunker vessel refueling a fishing fleet far from port.
 Transshipment at sea can be legitimate,
 but it can also be used to hide where fish was caught,
 which makes these meetings a key input to monitoring and risk analysis. [[2]](#2)
+Global Fishing Watch finds them in the same vessel position data
+it uses to track fishing activity worldwide. [[1]](#1)
 
 `pipe-encounters` detects those meetings.
 Global Fishing Watch defines an *encounter* as two vessels within 500 meters of each other
@@ -81,7 +81,7 @@ config:
   layout: dagre
   flowchart:
     wrappingWidth: 400
-    padding: 6
+    padding: 8
 ---
 flowchart TD
     MP[("<b>messages_positions</b>")]
