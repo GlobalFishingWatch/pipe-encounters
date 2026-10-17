@@ -63,24 +63,25 @@ instructions there.
 
 ### Examples:
 
-In incremental mode, the form of the command is
+The first step, `partial-encounters`, detects the pieces of encounters for a range of dates:
 
-        docker compose run pipeline create_raw_encounters \
-                --source_table SOURCE_TABLE \
-                --start_date DATE \
-                --end_date DATE \
-                --max_encounter_dist_km DISTANCE \
-                --min_encounter_time_minutes TIME \
-                --raw_table RAW_TABLE \
+        docker compose run pipeline partial-encounters \
+                --bq-in-positions SOURCE_TABLE \
+                --bq-out-partial-encounters RAW_TABLE \
+                --start-date DATE \
+                --end-date DATE \
+                --max-encounter-dist-km DISTANCE \
+                --min-encounter-time-minutes TIME \
+                --labels environment=development resource_creator=YOUR_NAME \
                 --project world-fishing-827 \
-                --temp_location gs://world-fishing-827-dev-ttl30d/scratch/encounters \
-                --job_name encounters-pip \
-                --max_num_workers 200 \
-                --setup_file ./setup.py \
-                --requirements_file requirements.txt \
                 --runner DataflowRunner \
-                --disk_size_gb 100 \
                 --region us-central1
+
+or, with a configuration file (command-line arguments take precedence over it):
+
+        docker compose run pipeline partial-encounters -c config/partial-encounters/bq-1-day.yaml
+
+Run `docker compose run pipeline partial-encounters --help` for all its options.
 
 The raw encounters are then merged together, removing duplicates and merging across day boundaries:
 
@@ -111,24 +112,6 @@ happens later in the pipeline and is run across all time on every day.
 
 Note that raw_table needs to be persistent since it is date sharded and new dates
 are added with each run.
-
-
-        docker compose run pipeline create_raw_encounters \
-                --source_table pipe_production_v20201001.position_messages \
-                --start_date 2018-01-01 \
-                --end_date 2018-01-31 \
-                --max_encounter_dist_km 0.5 \
-                --min_encounter_time_minutes 60 \
-                --raw_table world-fishing-827:machine_learning_dev_ttl_120d.raw_encounters_test_ \
-                --project world-fishing-827 \
-                --temp_location gs://world-fishing-827-dev-ttl30d/scratch/encounters \
-                --job_name encounters-pip \
-                --max_num_workers 100 \
-                --setup_file ./setup.py \
-                --requirements_file requirements.txt \
-                --runner DataflowRunner \
-                --disk_size_gb 100 \
-                --region us-central1
 
 
         docker compose run pipeline merge_encounters \

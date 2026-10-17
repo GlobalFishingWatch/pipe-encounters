@@ -14,7 +14,9 @@ pluggy==1.6.0
     #   pytest
     #   pytest-cov
 pygments==2.21.0
-    # via pytest
+    # via
+    #   -c requirements.txt
+    #   pytest
 pytest==9.1.1
     # via
     #   pipe-encounters (pyproject.toml:test)

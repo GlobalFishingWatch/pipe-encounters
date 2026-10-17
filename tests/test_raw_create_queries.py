@@ -12,7 +12,7 @@ class DummyOptions(object):
     ):
         self.start_date = start_date
         self.end_date = end_date
-        self.source_tables = [source_dataset]
+        self.bq_in_positions = [source_dataset]
         self.position_messages_table = position_messages_table
         self.segments_table = segments_table
         self.fast_test = False
