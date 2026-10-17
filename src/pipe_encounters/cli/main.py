@@ -8,7 +8,7 @@ from gfw.common.cli import CLI, labels_option
 from gfw.common.cli.formatting import default_formatter
 from gfw.common.logging import LoggerConfig
 
-from pipe_encounters.cli.commands import PartialEncounters
+from pipe_encounters.cli.commands import Encounters, PartialEncounters
 from pipe_encounters.utils.ver import __version__
 
 
@@ -22,6 +22,14 @@ EXAMPLES = (
     "--max-encounter-dist-km 0.5 --min-encounter-time-minutes 120 "
     "--labels environment=development resource_creator=tomas-link",
     "pipe-encounters partial-encounters -c config/partial-encounters/bq-1-day.yaml",
+    "pipe-encounters encounters "
+    "--bq-in-partial-encounters project.dataset.raw_encounters "
+    "--bq-in-segment-info project.dataset.segment_info "
+    "--bq-in-spatial-measures project.dataset.spatial_measures "
+    "--bq-out-encounters project.dataset.encounters "
+    "--start-date 2017-01-01 --end-date 2024-01-02 "
+    "--labels environment=development resource_creator=tomas-link",
+    "pipe-encounters encounters -c config/encounters/bq-full-history.yaml",
 )
 
 
@@ -31,7 +39,7 @@ def run(args: list[str]) -> Any:
         name=NAME,
         description=DESCRIPTION,
         formatter=default_formatter(max_pos=120),
-        subcommands=[PartialEncounters],
+        subcommands=[PartialEncounters, Encounters],
         options=[labels_option()],  # Common options for all subcommands.
         version=__version__,
         examples=EXAMPLES,
@@ -52,32 +60,9 @@ def run(args: list[str]) -> Any:
     return result
 
 
-# FROM NOW ON: LEGACY ENTRY POINT.
-# TODO: REMOVE AFTER MIGRATING merge_encounters.
-
-
-def run_merge_encounters(args: list[str]) -> None:
-    """Runs the legacy merge_encounters command, not migrated to the CLI yet."""
-    # Imported here so its PipelineOptions don't collide with other commands' arguments.
-    from pipe_encounters.merge_encounters import main as run_merge
-
-    run_merge(args)
-
-
-SUBCOMMANDS = {
-    "merge_encounters": run_merge_encounters,
-}
-
-
 def main() -> None:
     """Entry point of the installed package."""
-    args = sys.argv[1:]
-
-    if args and args[0] in SUBCOMMANDS:
-        SUBCOMMANDS[args[0]](args[1:])
-        return
-
-    run(args)
+    run(sys.argv[1:])
 
 
 if __name__ == "__main__":
