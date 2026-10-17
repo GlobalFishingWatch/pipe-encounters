@@ -75,6 +75,12 @@ The pipeline is a chain of two stages, each its own CLI command (see [Usage](#us
 </div>
 
 ```mermaid
+---
+config:
+  look: classic
+  theme: default
+  layout: dagre
+---
 flowchart TD
     POS[("position messages")]
     SEG[("segment info<br/>(segment → vessel)")]
