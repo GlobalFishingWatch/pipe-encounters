@@ -15,6 +15,7 @@ from gfw.common.beam.pipeline.base import Pipeline
 from pipe_encounters.core.encounter import RawEncounter
 from pipe_encounters.core.record import Record
 from pipe_encounters.pipelines.partial_encounters.config import PartialEncountersConfig
+from pipe_encounters.pipelines.partial_encounters.queries import PositionsQuery
 from pipe_encounters.schemas.output import build_raw_encounter
 from pipe_encounters.schemas.utils import schema_to_obj
 from pipe_encounters.transforms.add_id import AddRawEncounterId
@@ -48,49 +49,41 @@ Created by the encounters_pipeline: {__version__}.
 """
 
 
-def create_queries(args, start_date, end_date):
-    """Yields the queries that read the positions of [start_date, end_date], both inclusive."""
-    template = """
-    SELECT
-      lat        AS lat,
-      lon        AS lon,
-      speed      AS speed,
-      course     AS course,
-      UNIX_MILLIS(timestamp) / 1000.0  AS timestamp,
-      CONCAT("{id_prefix}", seg_id) AS id
-    FROM
-        `{position_table}`
-    WHERE
-        date(timestamp) BETWEEN '{start:%Y-%m-%d}' AND '{end:%Y-%m-%d}'
-        {condition}
-    """
-    if args.ssvid_filter is None:
-        condition = ""
-    else:
-        filter_core = args.ssvid_filter
-        if filter_core.startswith("@"):
-            with open(args.ssvid_filter[1:]) as f:
-                filter_core = f.read()
-        condition = f"AND ssvid in ({filter_core})"
+def split_id_prefix(source: str) -> tuple[str, str]:
+    """Splits a positions source, optionally "ID::table", into its seg_id prefix and table."""
+    if "::" not in source:
+        return "", source
 
-    for table in args.bq_in_positions:
-        if "::" in table:
-            id_prefix, table = table.split("::", 1)
-            id_prefix += ":"
-        else:
-            id_prefix = ""
-        start_window = start_date
-        while start_window <= end_date:
-            end_window = min(start_window + datetime.timedelta(days=999), end_date)
-            query = template.format(
-                id_prefix=id_prefix,
-                position_table=table,
-                start=start_window,
-                end=end_window,
-                condition=condition,
-            )
-            yield query
-            start_window = end_window + datetime.timedelta(days=1)
+    id_prefix, table = source.split("::", 1)
+    return f"{id_prefix}:", table
+
+
+def read_ssvid_filter(ssvid_filter: str) -> str:
+    """Returns the ssvid filter, read from a file if it's a path prefixed by @."""
+    if ssvid_filter is None or not ssvid_filter.startswith("@"):
+        return ssvid_filter
+
+    with open(ssvid_filter[1:]) as f:
+        return f.read()
+
+
+def positions_queries(config: PartialEncountersConfig) -> list[PositionsQuery]:
+    """Returns the query that reads the positions of each source table."""
+    ssvid_filter = read_ssvid_filter(config.ssvid_filter)
+
+    queries = []
+    for source in config.bq_in_positions:
+        id_prefix, table = split_id_prefix(source)
+        query = PositionsQuery(
+            source_positions=table,
+            start_date=config.start_date,
+            end_date=config.end_date,
+            id_prefix=id_prefix,
+            ssvid_filter=ssvid_filter,
+        )
+        queries.append(query.with_env(config.jinja_env))
+
+    return queries
 
 
 def check_schema(x, schema):
@@ -132,8 +125,8 @@ def run(config: PartialEncountersConfig, **kwargs: Any) -> int:
     schema = build_raw_encounter()
 
     sources = [
-        (p | f"Read_{i}" >> ReadSources(query=query, project=project, labels=config.labels))
-        for (i, query) in enumerate(create_queries(config, config.start_date, last_date))
+        (p | f"Read_{i}" >> ReadSources(query=q.render(), project=project, labels=config.labels))
+        for (i, q) in enumerate(positions_queries(config))
     ]
 
     writer = WriteEncountersToBQ(
