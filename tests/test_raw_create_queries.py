@@ -1,6 +1,6 @@
 from datetime import date
 
-from pipe_encounters.create_raw_pipeline import create_queries
+from pipe_encounters.pipelines.partial_encounters.main import create_queries
 
 
 class DummyOptions(object):
