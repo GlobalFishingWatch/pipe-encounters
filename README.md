@@ -78,8 +78,9 @@ The pipeline is a chain of two stages, each its own CLI command (see [Usage](#us
 ---
 config:
   look: classic
-  theme: default
   layout: dagre
+  flowchart:
+    wrappingWidth: 400
 ---
 flowchart TD
     POS[("position messages")]
