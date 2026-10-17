@@ -90,8 +90,8 @@ flowchart TD
     RE[("<b>raw_encounters</b>")]
     EN[("<b>encounters</b>")]
     EV[("<b>product_events</b>")]
-    PC{{"<b>partial-encounters</b><br/>detect pieces of encounters"}}
-    JC{{"<b>encounters</b><br/>join pieces into encounters"}}
+    PC{{"<b>partial-encounters</b>"}}
+    JC{{"<b>encounters</b>"}}
 
     MP ==> PC ==> RE ==> JC ==> EN -. pipe-events .-> EV
     SI ==> JC
