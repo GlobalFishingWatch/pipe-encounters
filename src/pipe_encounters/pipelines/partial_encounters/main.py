@@ -12,16 +12,20 @@ from apache_beam.runners import PipelineState
 from apache_beam.transforms.window import TimestampedValue
 from gfw.common.beam.pipeline.base import Pipeline
 
-from pipe_encounters.objects.encounter import RawEncounter
-from pipe_encounters.objects.record import Record
+from pipe_encounters.core.encounter import RawEncounter
+from pipe_encounters.core.record import Record
 from pipe_encounters.pipelines.partial_encounters.config import PartialEncountersConfig
 from pipe_encounters.schemas.output import build_raw_encounter
 from pipe_encounters.schemas.utils import schema_to_obj
 from pipe_encounters.transforms.add_id import AddRawEncounterId
-from pipe_encounters.transforms.compute_adjacency import ComputeAdjacency
-from pipe_encounters.transforms.compute_encounters import ComputeEncounters
+from pipe_encounters.pipelines.partial_encounters.transforms.compute_adjacency import (
+    ComputeAdjacency,
+)
+from pipe_encounters.pipelines.partial_encounters.transforms.compute_encounters import (
+    ComputeEncounters,
+)
 from pipe_encounters.transforms.readers import ReadSources
-from pipe_encounters.transforms.resample import Resample
+from pipe_encounters.pipelines.partial_encounters.transforms.resample import Resample
 from pipe_encounters.transforms.writers import WriteEncountersToBQ
 from pipe_encounters.utils.ver import __version__
 

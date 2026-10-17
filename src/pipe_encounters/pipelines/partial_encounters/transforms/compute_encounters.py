@@ -9,8 +9,10 @@ import six
 
 from apache_beam import FlatMap, GroupByKey, Map, PTransform
 
-from ..objects.encounter import RawEncounter
-from .compute_adjacency import compute_distance as compute_distance_km
+from pipe_encounters.core.encounter import RawEncounter
+from pipe_encounters.pipelines.partial_encounters.transforms.compute_adjacency import (
+    compute_distance as compute_distance_km,
+)
 
 
 MPS_TO_KNOTS = 1.94384

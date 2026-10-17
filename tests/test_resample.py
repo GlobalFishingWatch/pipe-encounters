@@ -1,7 +1,7 @@
 import datetime as dt
 import pytz
-from pipe_encounters.objects import record
-from pipe_encounters.transforms import resample
+from pipe_encounters.core import record
+from pipe_encounters.pipelines.partial_encounters.transforms import resample
 
 
 def Record(timestamp, lat, lon, id=b"0", speed=0.0):
