@@ -4,14 +4,17 @@ import logging
 import apache_beam as beam
 import pytz
 
-from apache_beam import Filter, Flatten, Map, Pipeline
-from apache_beam.options.pipeline_options import GoogleCloudOptions, StandardOptions
+from types import SimpleNamespace
+from typing import Any
+
+from apache_beam import Filter, Flatten, Map
+from apache_beam.options.pipeline_options import StandardOptions
 from apache_beam.runners import PipelineState
 from apache_beam.transforms.window import TimestampedValue
+from gfw.common.beam.pipeline.base import Pipeline
 
 from pipe_encounters.objects.encounter import RawEncounter
 from pipe_encounters.objects.record import Record
-from pipe_encounters.options.create_options import CreateOptions
 from pipe_encounters.schemas.output import build_raw_encounter
 from pipe_encounters.schemas.utils import schema_to_obj
 from pipe_encounters.transforms.add_id import AddRawEncounterId
@@ -26,22 +29,25 @@ from pipe_encounters.utils.ver import __version__
 RESAMPLE_INCREMENT_MINUTES = 10.0
 PRECURSOR_DAYS = 1
 
+ERROR_EMPTY_RANGE = "end_date ({1}) must be after start_date ({0})."
 
-def get_description(options: CreateOptions):
+
+def get_description(config: SimpleNamespace):
     return f"""\
 Created by the encounters_pipeline: {__version__}.
 * Creates raw encounters, reads the data from source and computes encounters over windows between start_date and end_date.  # noqa
 * https://github.com/GlobalFishingWatch/encounters_pipeline
-* Sources: {options.source_tables}
-* Maximum distance for vessels to be elegible (km): {options.max_encounter_dist_km}
-* Minimum minutes of vessel adjacency before we have an encounter: {options.min_encounter_time_minutes}
-* Maximum gap between positions to interpolate across (seconds): {options.max_gap_seconds}
-* Gaps of exactly max_gap_seconds are treated as interpolatable: {options.max_gap_seconds_inclusive}
-* Last processing date range: [{options.start_date}, {options.end_date}].
+* Sources: {config.bq_in_positions}
+* Maximum distance for vessels to be elegible (km): {config.max_encounter_dist_km}
+* Minimum minutes of vessel adjacency before we have an encounter: {config.min_encounter_time_minutes}
+* Maximum gap between positions to interpolate across (seconds): {config.max_gap_seconds}
+* Gaps of exactly max_gap_seconds are treated as interpolatable: {config.max_gap_seconds_inclusive}
+* Last processing date range: [{config.start_date}, {config.end_date}).
 """
 
 
-def create_queries(args):
+def create_queries(args, start_date, end_date):
+    """Yields the queries that read the positions of [start_date, end_date], both inclusive."""
     template = """
     SELECT
       lat        AS lat,
@@ -65,10 +71,7 @@ def create_queries(args):
                 filter_core = f.read()
         condition = f"AND ssvid in ({filter_core})"
 
-    start_date = datetime.datetime.strptime(args.start_date, "%Y-%m-%d")
-    end_date = datetime.datetime.strptime(args.end_date, "%Y-%m-%d")
-
-    for table in args.source_tables:
+    for table in args.bq_in_positions:
         if "::" in table:
             id_prefix, table = table.split("::", 1)
             id_prefix += ":"
@@ -108,32 +111,37 @@ def check_schema(x, schema):
     return x
 
 
-def run(options):
-
-    p = Pipeline(options=options)
-
-    create_options = options.view_as(CreateOptions)
-    cloud_options = options.view_as(GoogleCloudOptions)
-
-    start_date = datetime.datetime.strptime(create_options.start_date, "%Y-%m-%d").replace(
-        tzinfo=pytz.utc
+def run(config: SimpleNamespace, **kwargs: Any) -> int:
+    pipeline = Pipeline(
+        unparsed_args=config.unknown_unparsed_args,
+        labels=config.labels,
+        **config.unknown_parsed_args,
+        **kwargs,
     )
-    end_date = datetime.datetime.strptime(create_options.end_date, "%Y-%m-%d").replace(
-        tzinfo=pytz.utc
-    )
+    project = pipeline.cloud_options.project
+    p = pipeline.pipeline
+
+    # The CLI's end date is exclusive; the pipeline works on the last day it includes.
+    last_date = config.end_date - datetime.timedelta(days=1)
+    if last_date < config.start_date:
+        raise ValueError(ERROR_EMPTY_RANGE.format(config.start_date, config.end_date))
+
+    start_date = datetime.datetime.combine(config.start_date, datetime.time.min, tzinfo=pytz.utc)
+    end_date = datetime.datetime.combine(last_date, datetime.time.min, tzinfo=pytz.utc)
 
     schema = build_raw_encounter()
 
     sources = [
-        (p | f"Read_{i}" >> ReadSources(query=query, options=cloud_options))
-        for (i, query) in enumerate(create_queries(create_options))
+        (p | f"Read_{i}" >> ReadSources(query=query, project=project, labels=config.labels))
+        for (i, query) in enumerate(create_queries(config, config.start_date, last_date))
     ]
 
     writer = WriteEncountersToBQ(
-        table_id=create_options.raw_table,
+        table_id=config.bq_out_partial_encounters,
         schema=schema,
-        cloud_opts=cloud_options,
-        description=get_description(create_options),
+        project=project,
+        labels=config.labels,
+        description=get_description(config),
         write_disposition=beam.io.BigQueryDisposition.WRITE_APPEND,
     )
 
@@ -143,13 +151,13 @@ def run(options):
         | Record.FromDict()
         | Resample(
             increment_s=60 * RESAMPLE_INCREMENT_MINUTES,
-            max_gap_s=create_options.max_gap_seconds,
-            inclusive=create_options.max_gap_seconds_inclusive,
+            max_gap_s=config.max_gap_seconds,
+            inclusive=config.max_gap_seconds_inclusive,
         )
-        | ComputeAdjacency(max_adjacency_distance_km=create_options.max_encounter_dist_km)
+        | ComputeAdjacency(max_adjacency_distance_km=config.max_encounter_dist_km)
         | ComputeEncounters(
-            max_km_for_encounter=create_options.max_encounter_dist_km,
-            min_minutes_for_encounter=create_options.min_encounter_time_minutes,
+            max_km_for_encounter=config.max_encounter_dist_km,
+            min_minutes_for_encounter=config.min_encounter_time_minutes,
         )
         | Filter(lambda x: start_date.date() <= x.end_time.date() <= end_date.date())
         | RawEncounter.ToDict()
@@ -161,13 +169,14 @@ def run(options):
 
     # Ensure we delete any existing rows from the date to be processed.
     # Needed to maintain consistency we re-processing dates.
-    writer.delete_rows(start_date=create_options.start_date, end_date=create_options.end_date)
+    writer.delete_rows(start_date=config.start_date, end_date=last_date)
 
     result = p.run()
 
     success_states = set([PipelineState.DONE])
 
-    if create_options.wait_for_job or options.view_as(StandardOptions).runner == "DirectRunner":
+    runner = pipeline.pipeline_options.view_as(StandardOptions).runner
+    if config.wait_for_job or runner == "DirectRunner":
         result.wait_until_finish()
         if result.state in success_states:
             writer.update_table_metadata()

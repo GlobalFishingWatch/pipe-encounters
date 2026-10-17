@@ -1,14 +1,11 @@
 import apache_beam as beam
 
 
-list_to_dict = lambda labels: {x.split("=")[0]: x.split("=")[1] for x in labels}  # noqa
-
-
 class ReadSources(beam.PTransform):
-    def __init__(self, query, options: dict):
-        self.project = options.project
+    def __init__(self, query: str, project: str, labels: dict):
+        self.project = project
         self.use_legacy_sql = True
-        self.labels = list_to_dict(options.labels)
+        self.labels = labels
         self.query = query
 
     def expand(self, pcoll):

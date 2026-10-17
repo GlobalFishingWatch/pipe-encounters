@@ -8,9 +8,6 @@ from apache_beam.io.gcp.internal.clients.bigquery import TableSchema
 from google.cloud import bigquery
 
 
-list_to_dict = lambda labels: {x.split("=")[0]: x.split("=")[1] for x in labels}  # noqa
-
-
 DELETE_QUERY = """
     DELETE FROM `{table}`
     WHERE DATE({partitioning_field})
@@ -25,14 +22,15 @@ class WriteEncountersToBQ(beam.PTransform):
         self,
         table_id: str,
         schema: TableSchema,
-        cloud_opts,
+        project: str,
+        labels: dict,
         description: str = None,
         **kwargs: Any,
     ):
-        self.bqclient = bigquery.Client(project=cloud_opts.project)
+        self.bqclient = bigquery.Client(project=project)
         self.table_id = table_id
         self.schema = schema
-        self.labels = list_to_dict(cloud_opts.labels)
+        self.labels = labels
         self.description = description
         self.kwargs = kwargs
 

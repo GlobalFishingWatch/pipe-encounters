@@ -1,0 +1,24 @@
+# Query parameters:
+bq_in_positions:
+  - "world-fishing-827.pipe_production_v20201001.position_messages"
+bq_out_partial_encounters: "world-fishing-827.scratch_tomas_ttl30d.raw_encounters"
+start_date: "2024-01-01"
+end_date: "2024-01-02"
+max_encounter_dist_km: 0.5
+min_encounter_time_minutes: 120
+
+# Apache Beam / Dataflow options:
+project: world-fishing-827
+runner: DataflowRunner
+max_num_workers: 100
+region: us-central1
+subnetwork: regions/us-central1/subnetworks/gfw-internal-us-central1
+temp_location: "gs://gfw-dataflow-temp-staging-ttl-7/encounters/temp"
+staging_location: "gs://gfw-dataflow-temp-staging-ttl-7/encounters/staging"
+
+# Labels for cost tracking (label values: lowercase letters, digits, '_' and '-').
+labels:
+  environment: development
+  resource_creator: tomas-link
+  project: ais
+  stage: encounters

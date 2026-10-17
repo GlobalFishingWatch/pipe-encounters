@@ -7,11 +7,11 @@ import six
 import apache_beam as beam
 from apache_beam import Map
 from apache_beam.testing.test_pipeline import TestPipeline as _TestPipeline
+from apache_beam.options.pipeline_options import PipelineOptions
 from apache_beam.testing.util import assert_that
 
 from .test_resample import ResampledRecord
 from .series_data import simple_series_data
-from pipe_encounters.options.create_options import CreateOptions
 from pipe_encounters.transforms import compute_adjacency
 from pipe_encounters.transforms import resample
 from pipe_encounters.objects import record
@@ -58,16 +58,7 @@ class TestComputeAdjacency(unittest.TestCase):
     def test_with_resampling(self):
 
         tuple_data = [tuple(x) for x in simple_series_data]
-
-        args = [
-            f"--source_table={tuple_data}",
-            "--raw_table=test",
-            "--start_date=2011-01-01",
-            "--end_date=2011-01-01",
-            "--max_encounter_dist_km=0.5",
-            "--min_encounter_time_minutes=120",
-        ]
-        opts = CreateOptions(args)
+        opts = PipelineOptions()
         with _TestPipeline(options=opts) as p:
             results = (
                 p

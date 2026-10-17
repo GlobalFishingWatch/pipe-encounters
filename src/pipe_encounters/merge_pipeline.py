@@ -35,6 +35,11 @@ Created by the encounters_pipeline: {__version__}
 """
 
 
+def labels_to_dict(labels):
+    """Parses the legacy --labels key=value list into a dictionary."""
+    return {x.split("=")[0]: x.split("=")[1] for x in labels}
+
+
 def combine_ids(obj):
     for v in [1, 2]:
         obj[f"vessel_{v}_seg_id"] = (
@@ -143,11 +148,12 @@ def run(options):
 
     merge_options = options.view_as(MergeOptions)
     cloud_options = options.view_as(GoogleCloudOptions)
+    labels = labels_to_dict(cloud_options.labels)
 
     queries = create_queries(merge_options)
 
     sources = [
-        (p | f"Read_{i}" >> ReadSources(query=query, options=cloud_options))
+        (p | f"Read_{i}" >> ReadSources(query=query, project=cloud_options.project, labels=labels))
         for (i, query) in enumerate(queries)
     ]
 
@@ -169,7 +175,8 @@ def run(options):
     writer = WriteEncountersToBQ(
         table_id=merge_options.sink_table,
         schema=merge_schema(),
-        cloud_opts=cloud_options,
+        project=cloud_options.project,
+        labels=labels,
         description=get_description(merge_options),
         write_disposition=beam.io.BigQueryDisposition.WRITE_TRUNCATE,
     )
