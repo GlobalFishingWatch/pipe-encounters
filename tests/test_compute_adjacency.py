@@ -12,9 +12,9 @@ from apache_beam.testing.util import assert_that
 
 from .test_resample import ResampledRecord
 from .series_data import simple_series_data
-from pipe_encounters.transforms import compute_adjacency
-from pipe_encounters.transforms import resample
-from pipe_encounters.objects import record
+from pipe_encounters.pipelines.partial_encounters.transforms import compute_adjacency
+from pipe_encounters.pipelines.partial_encounters.transforms import resample
+from pipe_encounters.core import record
 from pipe_encounters.utils.test import approx_equal_to as equal_to
 
 

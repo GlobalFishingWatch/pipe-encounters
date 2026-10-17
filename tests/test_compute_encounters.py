@@ -11,12 +11,16 @@ from apache_beam import Map
 from apache_beam.testing.test_pipeline import TestPipeline as _TestPipeline
 from apache_beam.options.pipeline_options import PipelineOptions
 from apache_beam.testing.util import assert_that
-from pipe_encounters.objects import encounter, record
-from pipe_encounters.transforms import compute_adjacency
-from pipe_encounters.transforms.compute_adjacency import ComputeAdjacency
-from pipe_encounters.transforms.compute_encounters import ComputeEncounters
+from pipe_encounters.core import encounter, record
+from pipe_encounters.pipelines.partial_encounters.transforms import compute_adjacency
+from pipe_encounters.pipelines.partial_encounters.transforms.compute_adjacency import (
+    ComputeAdjacency,
+)
+from pipe_encounters.pipelines.partial_encounters.transforms.compute_encounters import (
+    ComputeEncounters,
+)
 from pipe_encounters.transforms.merge_encounters import MergeEncounters
-from pipe_encounters.transforms.resample import Resample
+from pipe_encounters.pipelines.partial_encounters.transforms.resample import Resample
 from pipe_encounters.utils.test import approx_equal_to as equal_to
 
 from .series_data import (

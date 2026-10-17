@@ -1,7 +1,7 @@
 from apache_beam import Filter, Map, PTransform
 from apache_beam.transforms.window import TimestampedValue
 
-from pipe_encounters.objects.namedtuples import _datetime_to_s
+from pipe_encounters.core.namedtuples import _datetime_to_s
 
 
 class CreateTimestampedAdjacencies(PTransform):

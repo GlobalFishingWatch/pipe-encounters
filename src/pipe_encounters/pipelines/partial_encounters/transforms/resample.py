@@ -8,9 +8,9 @@ import pytz
 from apache_beam import FlatMap, PTransform
 from more_itertools import peekable
 
-from ..objects.resampled_record import ResampledRecord
-from .group_by_id import GroupByIdAndDate
-from .sort_by_time import SortByTime
+from pipe_encounters.core.resampled_record import ResampledRecord
+from pipe_encounters.pipelines.partial_encounters.transforms.group_by_id import GroupByIdAndDate
+from pipe_encounters.pipelines.partial_encounters.transforms.sort_by_time import SortByTime
 
 
 def timestamp_as_datetime(ts):
