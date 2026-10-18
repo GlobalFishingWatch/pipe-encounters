@@ -15,7 +15,7 @@ from pipe_encounters.core.encounter import Encounter, RawEncounter
 from pipe_encounters.pipelines.encounters.config import EncountersConfig
 from pipe_encounters.schemas.output import build as merge_schema
 from pipe_encounters.transforms.add_id import AddEncounterId
-from pipe_encounters.transforms.merge_encounters import MergeEncounters
+from pipe_encounters.pipelines.encounters.transforms.merge_encounters import MergeEncounters
 from pipe_encounters.transforms.readers import ReadSources
 from pipe_encounters.transforms.writers import WriteEncountersToBQ
 from pipe_encounters.utils.ver import __version__
