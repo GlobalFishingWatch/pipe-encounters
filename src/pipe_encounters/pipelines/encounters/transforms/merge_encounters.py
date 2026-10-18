@@ -4,7 +4,6 @@ import math
 from statistics import median
 
 import apache_beam as beam
-import pytz
 
 from apache_beam import FlatMap, GroupByKey, Map, PTransform
 
@@ -13,7 +12,7 @@ from pipe_encounters.encoding import to_text
 
 
 inf = float("inf")
-epoch = datetime.datetime.utcfromtimestamp(0).replace(tzinfo=pytz.utc)
+epoch = datetime.datetime.fromtimestamp(0, tz=datetime.timezone.utc)
 
 T = beam.typehints.TypeVariable("T")
 

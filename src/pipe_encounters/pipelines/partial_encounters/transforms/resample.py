@@ -1,7 +1,6 @@
 import datetime as dtime
 import math
 
-import pytz
 
 from apache_beam import FlatMap, PTransform
 from more_itertools import peekable
@@ -12,7 +11,7 @@ from pipe_encounters.pipelines.partial_encounters.transforms.sort_by_time import
 
 
 def timestamp_as_datetime(ts):
-    return dtime.datetime.utcfromtimestamp(ts).replace(tzinfo=pytz.utc)
+    return dtime.datetime.fromtimestamp(ts, tz=dtime.timezone.utc)
 
 
 class Resample(PTransform):
@@ -32,7 +31,7 @@ class Resample(PTransform):
         If false (default), only gaps strictly less than max_gap_s qualify.
     """
 
-    epoch = dtime.datetime.utcfromtimestamp(0).replace(tzinfo=pytz.utc)
+    epoch = dtime.datetime.fromtimestamp(0, tz=dtime.timezone.utc)
 
     def __init__(self, increment_s, max_gap_s, extrapolate=True, inclusive=False):
         self.increment_s = increment_s
@@ -151,11 +150,11 @@ class Resample(PTransform):
         date = records[0].timestamp.date()
         assert records[-1].timestamp.date() == date, (records[0].timestamp, records[1].timestamp)
         beg_dt = max(
-            dtime.datetime.combine(date, dtime.time.min, tzinfo=pytz.UTC),
+            dtime.datetime.combine(date, dtime.time.min, tzinfo=dtime.timezone.utc),
             records[0].timestamp - dtime.timedelta(seconds=self.max_gap_s),
         )
         end_dt = min(
-            dtime.datetime.combine(date, dtime.time.max, tzinfo=pytz.UTC),
+            dtime.datetime.combine(date, dtime.time.max, tzinfo=dtime.timezone.utc),
             records[-1].timestamp + dtime.timedelta(seconds=self.max_gap_s),
         )
 
