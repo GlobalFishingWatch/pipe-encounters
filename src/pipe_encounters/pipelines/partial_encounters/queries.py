@@ -23,7 +23,10 @@ class PositionsQuery(Query):
     id_prefix: str = ""
     ssvid_filter: str = None
 
-    template_filename = "positions.sql.j2"
+    @property
+    def template_filename(self) -> str:
+        """The template's file, in assets/queries."""
+        return "positions.sql.j2"
 
     @property
     def template_vars(self) -> dict:
