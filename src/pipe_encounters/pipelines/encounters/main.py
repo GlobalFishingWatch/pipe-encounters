@@ -1,11 +1,9 @@
 import logging
 
 from datetime import timedelta
-from types import SimpleNamespace
 from typing import Any
 
 import apache_beam as beam
-import numpy as np
 import six
 
 from apache_beam import Filter, FlatMap, Flatten, Map
@@ -14,6 +12,7 @@ from apache_beam.runners import PipelineState
 from gfw.common.beam.pipeline.base import Pipeline
 
 from pipe_encounters.core.encounter import Encounter, RawEncounter
+from pipe_encounters.pipelines.encounters.config import EncountersConfig
 from pipe_encounters.schemas.output import build as merge_schema
 from pipe_encounters.transforms.add_id import AddEncounterId
 from pipe_encounters.transforms.merge_encounters import MergeEncounters
@@ -22,10 +21,7 @@ from pipe_encounters.transforms.writers import WriteEncountersToBQ
 from pipe_encounters.utils.ver import __version__
 
 
-ERROR_EMPTY_RANGE = "end_date ({1}) must be after start_date ({0})."
-
-
-def get_description(config: SimpleNamespace):
+def get_description(config: EncountersConfig):
     return f"""\
 Created by the encounters_pipeline: {__version__}
 * Merges the encounters that are close in time into one long encounter.
@@ -131,14 +127,7 @@ def filter_by_distance(obj, min_distance_from_port_km):
     return [obj]
 
 
-def tag_with_gridcode(x):
-    lat = np.clip(x.mean_latitude, -89.99, 89.99)
-    gc = f"lon:{round(x.mean_longitude, 2):+07.2f}_lat:{round(lat, 2):+07.2f}"
-    gc = gc.replace("-000.00", "+000.00").replace("+180.00", "-180.00")
-    return (gc, x)
-
-
-def run(config: SimpleNamespace, **kwargs: Any) -> int:
+def run(config: EncountersConfig, **kwargs: Any) -> int:
     pipeline = Pipeline(
         unparsed_args=config.unknown_unparsed_args,
         labels=config.labels,
@@ -148,10 +137,8 @@ def run(config: SimpleNamespace, **kwargs: Any) -> int:
     project = pipeline.cloud_options.project
     p = pipeline.pipeline
 
-    # The CLI's end date is exclusive; the pipeline works on the last day it includes.
+    # The end date is exclusive; the pipeline works on the last day it includes.
     last_date = config.end_date - timedelta(days=1)
-    if last_date < config.start_date:
-        raise ValueError(ERROR_EMPTY_RANGE.format(config.start_date, config.end_date))
 
     queries = create_queries(config, config.start_date, last_date)
 
