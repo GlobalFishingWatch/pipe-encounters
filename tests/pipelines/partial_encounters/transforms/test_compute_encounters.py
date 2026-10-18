@@ -1,11 +1,10 @@
 import datetime
 
 import pytz
-import six
 
-from pipe_encounters.core import encounter, record
+from pipe_encounters.core import encounter
 from pipe_encounters.utils.test import approx_equal_to
-from tests.pipelines.partial_encounters.transforms.steps import adjacency, encounters, resample
+from tests.pipelines.partial_encounters.transforms.steps import detect, records
 from tests.series_data import (
     dateline_series_data,
     fastsep_series_data,
@@ -15,28 +14,11 @@ from tests.series_data import (
 )
 
 
-def ensure_bytes_id(obj):
-    return obj._replace(id=six.ensure_binary(obj.id))
-
-
 inf = float("inf")
 
 
 def ts(x):
     return datetime.datetime.strptime(x, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=pytz.utc)
-
-
-def records(series_data):
-    return [ensure_bytes_id(record.Record(*x)) for x in series_data]
-
-
-def detect(records, max_tracked_distances=100):
-    """Resample, ComputeAdjacency and ComputeEncounters, as these tests always applied them."""
-    resampled = resample(records, increment_s=60 * 10, max_gap_s=60 * 70, extrapolate=False)
-    annotated = adjacency(
-        resampled, max_adjacency_distance_km=1.0, max_tracked_distances=max_tracked_distances
-    )
-    return encounters(annotated, max_km_for_encounter=0.5, min_minutes_for_encounter=30)
 
 
 def test_simple_encounters():
