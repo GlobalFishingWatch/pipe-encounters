@@ -4,7 +4,10 @@ from datetime import date
 
 import pytest
 
+from gfw.common.config import PipelineConfigError
+
 from pipe_encounters.cli import main
+from pipe_encounters.pipelines.encounters.config import EncountersConfig
 
 
 BASE_ARGS = [
@@ -21,13 +24,14 @@ BASE_ARGS = [
 
 @pytest.fixture
 def run(mocker):
-    return mocker.patch("pipe_encounters.cli.commands.encounters.merge_pipeline.run")
+    return mocker.patch("pipe_encounters.cli.commands.encounters.main.run")
 
 
 def test_cli_executes_run_with_the_config(run):
     main.run(BASE_ARGS)
 
     config = run.call_args.args[0]
+    assert isinstance(config, EncountersConfig)
     assert config.bq_in_partial_encounters == "project.dataset.raw_encounters"
     assert config.bq_in_segment_info == "project.dataset.segment_info"
     assert config.bq_in_spatial_measures == "project.dataset.spatial_measures"
@@ -55,7 +59,7 @@ class StopAfterPipeline(Exception):
 
 def test_config_file_beam_options_reach_the_pipeline(mocker, tmp_path):
     pipeline = mocker.patch(
-        "pipe_encounters.merge_pipeline.Pipeline", side_effect=StopAfterPipeline
+        "pipe_encounters.pipelines.encounters.main.Pipeline", side_effect=StopAfterPipeline
     )
     config_file = tmp_path / "config.yaml"
     config_file.write_text("project: test-project\nmax_num_workers: 50\n")
@@ -63,17 +67,15 @@ def test_config_file_beam_options_reach_the_pipeline(mocker, tmp_path):
     with pytest.raises(StopAfterPipeline):
         main.run([*BASE_ARGS, "-c", str(config_file)])
 
-    assert pipeline.call_args.kwargs == {
-        "unparsed_args": [],
-        "labels": {"environment": "test"},
-        "project": "test-project",
-        "max_num_workers": 50,
-    }
+    kwargs = pipeline.call_args.kwargs
+    assert kwargs["unparsed_args"] == []
+    assert kwargs["labels"] == {"environment": "test"}
+    assert kwargs["project"] == "test-project"
+    assert kwargs["max_num_workers"] == 50
 
 
-def test_run_rejects_an_empty_date_range(mocker):
-    mocker.patch("pipe_encounters.merge_pipeline.Pipeline")
+def test_cli_rejects_an_empty_date_range(run):
     args = [a.replace("2024-01-08", "2017-01-01") for a in BASE_ARGS]
 
-    with pytest.raises(ValueError, match="must be after start_date"):
+    with pytest.raises(PipelineConfigError, match="end_date"):
         main.run(args)

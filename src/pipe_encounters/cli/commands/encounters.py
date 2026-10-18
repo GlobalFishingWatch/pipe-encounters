@@ -5,7 +5,8 @@ from typing import Any
 
 from gfw.common.cli import Command, Option, date_range_options
 
-from pipe_encounters import merge_pipeline
+from pipe_encounters.pipelines.encounters import main
+from pipe_encounters.pipelines.encounters.config import EncountersConfig
 
 
 DESCRIPTION = """\
@@ -69,4 +70,4 @@ class Encounters(Command):
 
     def run(self, config: SimpleNamespace, **kwargs: Any) -> Any:
         """Runs the pipeline with the resolved configuration."""
-        return merge_pipeline.run(config, **kwargs)
+        return main.run(EncountersConfig.from_namespace(config), **kwargs)
