@@ -6,9 +6,8 @@ transform's own methods. GroupByKey's order doesn't matter: each method sorts wh
 
 from collections import defaultdict
 
-import six
-
 from pipe_encounters.core import record
+from pipe_encounters.encoding import to_bytes
 
 from pipe_encounters.pipelines.partial_encounters.transforms.compute_adjacency import (
     ComputeAdjacency,
@@ -60,7 +59,7 @@ def encounters(annotated, **kwargs):
 
 
 def records(series_data):
-    return [record.Record(*x)._replace(id=six.ensure_binary(x[0])) for x in series_data]
+    return [record.Record(*x)._replace(id=to_bytes(x[0])) for x in series_data]
 
 
 def detect(records, max_tracked_distances=100):
