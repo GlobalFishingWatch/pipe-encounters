@@ -41,7 +41,7 @@ def test_cli_executes_run_with_the_config(run):
     assert config.bad_segs is None
     assert config.min_hours_between_encounters == 4
     assert config.min_encounter_time_minutes is None
-    assert config.wait_for_job is False
+    assert config.mock_bq_clients is False
     assert config.labels == {"environment": "test"}
 
 
