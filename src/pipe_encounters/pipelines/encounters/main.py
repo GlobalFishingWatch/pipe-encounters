@@ -1,47 +1,23 @@
-import logging
+"""Encounters pipeline: joins the partial encounters into encounters between two vessels."""
 
-from typing import Any
+from typing import Any, Callable
 
 import apache_beam as beam
-import six
 
-from apache_beam import Filter, FlatMap, Flatten, Map
-from apache_beam.options.pipeline_options import StandardOptions
-from apache_beam.runners import PipelineState
 from gfw.common.beam.pipeline.base import Pipeline
+from gfw.common.beam.pipeline.dag import LinearDag
+from gfw.common.beam.pipeline.hooks import create_table_hook, update_table_metadata_hook
+from gfw.common.beam.transforms import ReadFromBigQuery, WriteToBigQueryWrapper
+from gfw.common.bigquery.helper import BigQueryHelper
 
-from pipe_encounters.core.encounter import Encounter, RawEncounter
 from pipe_encounters.pipelines.encounters.config import EncountersConfig
 from pipe_encounters.pipelines.encounters.queries import PartialEncountersQuery
-from pipe_encounters.schemas.output import build as merge_schema
-from pipe_encounters.transforms.add_id import AddEncounterId
-from pipe_encounters.pipelines.encounters.transforms.merge_encounters import MergeEncounters
-from pipe_encounters.transforms.readers import ReadSources
-from pipe_encounters.transforms.writers import WriteEncountersToBQ
+from pipe_encounters.pipelines.encounters.table_config import (
+    EncountersTableConfig,
+    EncountersTableDescription,
+)
+from pipe_encounters.pipelines.encounters.transforms.core import JoinPartialEncounters
 from pipe_encounters.utils.ver import __version__
-
-
-def get_description(config: EncountersConfig):
-    return f"""\
-Created by the encounters_pipeline: {__version__}
-* Merges the encounters that are close in time into one long encounter.
-* https://github.com/GlobalFishingWatch/encounters_pipeline
-* Source partial encounters: {config.bq_in_partial_encounters}
-* Source vessel id: {config.bq_in_segment_info}
-* Source Spatial Measure: {config.bq_in_spatial_measures}
-* Min hours before encounter: {config.min_hours_between_encounters}
-* Skip bad segments table? {"Yes" if config.bad_segs else "No"}
-* Date range: [{config.start_date}, {config.end_date})
-"""
-
-
-def combine_ids(obj):
-    for v in [1, 2]:
-        obj[f"vessel_{v}_seg_id"] = (
-            six.ensure_binary(obj.pop(f"vessel_{v}_id")),
-            six.ensure_binary(obj[f"vessel_{v}_seg_id"]),
-        )
-    return obj
 
 
 def partial_encounters_query(config: EncountersConfig) -> PartialEncountersQuery:
@@ -57,68 +33,102 @@ def partial_encounters_query(config: EncountersConfig) -> PartialEncountersQuery
     return query.with_env(config.jinja_env)
 
 
-def filter_by_distance(obj, min_distance_from_port_km):
-    distance_from_shore_m = obj.pop("distance_from_shore_m")
-    distance_from_port_m = obj.pop("distance_from_port_m")
-    if distance_from_port_m < min_distance_from_port_km * 1000:
-        return []
-    elif distance_from_shore_m is None or distance_from_shore_m <= 0:
-        return []
-    return [obj]
+def run(
+    config: EncountersConfig,
+    read_from_bigquery_factory: Callable = None,
+    write_to_bigquery_factory: Callable = None,
+    bq_client_factory: Callable = None,
+    **kwargs: Any,
+) -> None:
+    """Runs the encounters pipeline.
 
+    Args:
+        config:
+            The pipeline's configuration.
 
-def run(config: EncountersConfig, **kwargs: Any) -> int:
+        read_from_bigquery_factory:
+            Builds the transform that reads from BigQuery. Defaults to gfw-common's, mocked if
+            config.mock_bq_clients is set.
+
+        write_to_bigquery_factory:
+            Builds the transform that writes to BigQuery. Defaults to gfw-common's, mocked if
+            config.mock_bq_clients is set.
+
+        bq_client_factory:
+            Builds the BigQuery client of the table-metadata hook. Defaults to gfw-common's,
+            mocked if config.mock_bq_clients is set.
+
+        **kwargs:
+            Apache Beam pipeline options.
+    """
+    if read_from_bigquery_factory is None:
+        read_from_bigquery_factory = ReadFromBigQuery.get_client_factory(
+            mocked=config.mock_bq_clients
+        )
+    if write_to_bigquery_factory is None:
+        write_to_bigquery_factory = WriteToBigQueryWrapper.get_client_factory(
+            mocked=config.mock_bq_clients
+        )
+    if bq_client_factory is None:
+        bq_client_factory = BigQueryHelper.get_client_factory(mocked=config.mock_bq_clients)
+
+    table_config = EncountersTableConfig(
+        table_id=config.bq_out_encounters,
+        description=EncountersTableDescription(
+            version=__version__,
+            relevant_params={
+                "bq_in_partial_encounters": config.bq_in_partial_encounters,
+                "bq_in_segment_info": config.bq_in_segment_info,
+                "bq_in_spatial_measures": config.bq_in_spatial_measures,
+                "start_date": config.start_date,
+                "end_date": config.end_date,
+                "bad_segs": config.bad_segs,
+                "min_hours_between_encounters": config.min_hours_between_encounters,
+                "min_encounter_time_minutes": config.min_encounter_time_minutes,
+            },
+        ),
+    )
+
+    dag = LinearDag(
+        sources=[
+            ReadFromBigQuery.from_query(
+                partial_encounters_query(config),
+                label="ReadPartialEncounters",
+                read_from_bigquery_factory=read_from_bigquery_factory,
+                read_from_bigquery_kwargs={"bigquery_job_labels": config.labels},
+            ),
+        ],
+        core=JoinPartialEncounters(
+            min_hours_between_encounters=config.min_hours_between_encounters,
+            min_encounter_time_minutes=config.min_encounter_time_minutes,
+        ),
+        sinks=(
+            WriteToBigQueryWrapper(
+                table=table_config.table_id,
+                schema=table_config.schema,
+                write_to_bigquery_factory=write_to_bigquery_factory,
+                write_disposition=beam.io.BigQueryDisposition.WRITE_TRUNCATE,
+                create_disposition=beam.io.BigQueryDisposition.CREATE_NEVER,
+            ),
+        ),
+    )
+
     pipeline = Pipeline(
+        dag=dag,
+        pre_hooks=[
+            create_table_hook(
+                table_config, labels=config.labels, bq_client_factory=bq_client_factory
+            )
+        ],
+        post_hooks=[
+            update_table_metadata_hook(
+                table_config, labels=config.labels, bq_client_factory=bq_client_factory
+            )
+        ],
         unparsed_args=config.unknown_unparsed_args,
         labels=config.labels,
         **config.unknown_parsed_args,
         **kwargs,
     )
-    project = pipeline.cloud_options.project
-    p = pipeline.pipeline
 
-    query = partial_encounters_query(config).render()
-    sources = [p | "Read" >> ReadSources(query=query, project=project, labels=config.labels)]
-
-    merged = (
-        sources
-        | Flatten()
-        | "CombineSegVesselIds" >> Map(combine_ids)
-        | FlatMap(filter_by_distance, min_distance_from_port_km=10)
-        | RawEncounter.FromDict()
-        | MergeEncounters(min_hours_between_encounters=config.min_hours_between_encounters)
-    )
-
-    if config.min_encounter_time_minutes is not None:
-        merged = merged | Filter(
-            lambda x: (x.end_time - x.start_time).total_seconds() / 60.0
-            >= config.min_encounter_time_minutes
-        )
-
-    writer = WriteEncountersToBQ(
-        table_id=config.bq_out_encounters,
-        schema=merge_schema(),
-        project=project,
-        labels=config.labels,
-        description=get_description(config),
-        write_disposition=beam.io.BigQueryDisposition.WRITE_TRUNCATE,
-    )
-
-    merged = merged | "FilteredToDicts" >> Encounter.ToDict() | AddEncounterId() | writer
-
-    result = p.run()
-
-    success_states = set([PipelineState.DONE])
-
-    runner = pipeline.pipeline_options.view_as(StandardOptions).runner
-    if config.wait_for_job or runner == "DirectRunner":
-        result.wait_until_finish()
-        if result.state in success_states:
-            writer.update_table_metadata()
-    else:
-        success_states.add(PipelineState.RUNNING)
-        success_states.add(PipelineState.UNKNOWN)
-        success_states.add(PipelineState.PENDING)
-
-    logging.info("returning with result.state=%s" % result.state)
-    return 0 if result.state in success_states else 1
+    pipeline.run()

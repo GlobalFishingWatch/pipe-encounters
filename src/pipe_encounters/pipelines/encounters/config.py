@@ -34,6 +34,3 @@ class EncountersConfig(DatePipelineConfig):
 
     min_encounter_time_minutes: float = None
     """Minimum duration (minutes) of an encounter. Not applied if not set."""
-
-    wait_for_job: bool = False
-    """Wait until the job finishes before returning."""
