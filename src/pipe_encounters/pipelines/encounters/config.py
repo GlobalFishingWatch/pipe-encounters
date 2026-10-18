@@ -17,8 +17,8 @@ class EncountersConfig(DatePipelineConfig):
     bq_in_partial_encounters: str
     """Table to read the partial encounters from."""
 
-    bq_in_segment_info: list[str]
-    """Tables mapping each seg_id to its vessel_id, each optionally prefixed by 'ID::'."""
+    bq_in_segment_info: str
+    """Table mapping each seg_id to its vessel_id."""
 
     bq_in_spatial_measures: str
     """Table to read the distance from shore and from port from."""
