@@ -2,7 +2,7 @@ import datetime
 
 
 from pipe_encounters.core import encounter
-from pipe_encounters.utils.test import approx_equal_to
+from tests.utils import approx_equal_to
 from tests.pipelines.partial_encounters.transforms.steps import detect, records
 from tests.series_data import (
     dateline_series_data,
