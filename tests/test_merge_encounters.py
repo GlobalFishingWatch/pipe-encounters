@@ -19,7 +19,7 @@ from pipe_encounters.pipelines.partial_encounters.transforms.compute_adjacency i
 from pipe_encounters.pipelines.partial_encounters.transforms.compute_encounters import (
     ComputeEncounters,
 )
-from pipe_encounters.transforms.merge_encounters import MergeEncounters
+from pipe_encounters.pipelines.encounters.transforms.merge_encounters import MergeEncounters
 from pipe_encounters.pipelines.partial_encounters.transforms.resample import Resample
 from pipe_encounters.utils.test import approx_equal_to as equal_to
 
