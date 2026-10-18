@@ -1,5 +1,4 @@
 import datetime as dt
-import pytz
 from pipe_encounters.core import record
 from pipe_encounters.pipelines.partial_encounters.transforms import resample
 
@@ -7,7 +6,7 @@ from pipe_encounters.pipelines.partial_encounters.transforms import resample
 def Record(timestamp, lat, lon, id=b"0", speed=0.0):
     if not isinstance(timestamp, dt.datetime):
         timestamp = dt.datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S %Z").replace(
-            tzinfo=pytz.utc
+            tzinfo=dt.timezone.utc
         )
     return record.Record(id=id, timestamp=timestamp, lat=lat, lon=lon, speed=speed, course=45)
 
@@ -15,7 +14,7 @@ def Record(timestamp, lat, lon, id=b"0", speed=0.0):
 def ResampledRecord(timestamp, lat, lon, point_density=1.0, id=b"0", speed=0.0):
     if not isinstance(timestamp, dt.datetime):
         timestamp = dt.datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S %Z").replace(
-            tzinfo=pytz.utc
+            tzinfo=dt.timezone.utc
         )
     return resample.ResampledRecord(
         id=id, timestamp=timestamp, lat=lat, lon=lon, speed=speed, point_density=point_density
