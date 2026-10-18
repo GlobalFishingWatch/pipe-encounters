@@ -1,10 +1,9 @@
 """Core transform of the encounters pipeline."""
 
-import six
-
 from apache_beam import Filter, FlatMap, Map, PTransform
 
 from pipe_encounters.core.encounter import Encounter, RawEncounter
+from pipe_encounters.encoding import to_bytes
 from pipe_encounters.pipelines.encounters.transforms.merge_encounters import MergeEncounters
 from pipe_encounters.transforms.add_id import AddEncounterId
 
@@ -16,8 +15,8 @@ def combine_ids(obj):
     """Replaces each segment id with a (vessel id, segment id) pair, as MergeEncounters needs."""
     for v in [1, 2]:
         obj[f"vessel_{v}_seg_id"] = (
-            six.ensure_binary(obj.pop(f"vessel_{v}_id")),
-            six.ensure_binary(obj[f"vessel_{v}_seg_id"]),
+            to_bytes(obj.pop(f"vessel_{v}_id")),
+            to_bytes(obj[f"vessel_{v}_seg_id"]),
         )
     return obj
 
