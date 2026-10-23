@@ -28,9 +28,7 @@ vessel_ids AS (
 SELECT
     partial_encounters.* EXCEPT (gridcode),
     vid1.vessel_id AS vessel_1_id,
-    vid2.vessel_id AS vessel_2_id,
-    distance_from_shore_m,
-    distance_from_port_m
+    vid2.vessel_id AS vessel_2_id
 FROM
     partial_encounters
 JOIN vessel_ids AS vid1
@@ -39,3 +37,6 @@ JOIN vessel_ids AS vid2
     ON vessel_2_seg_id = vid2.seg_id
 JOIN `{{ source_spatial_measures }}`
     USING (gridcode)
+WHERE
+    distance_from_port_m >= {{ min_distance_from_port_km }} * 1000
+    AND distance_from_shore_m > 0
