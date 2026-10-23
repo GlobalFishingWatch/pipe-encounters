@@ -1,6 +1,9 @@
 <h1 align="center" style="border-bottom: none;"> pipe-encounters </h1>
 
 <p align="center">
+  <a href="https://github.com/GlobalFishingWatch/pipe-encounters/actions/workflows/main.yml">
+    <img alt="CI" src="https://github.com/GlobalFishingWatch/pipe-encounters/actions/workflows/main.yml/badge.svg">
+  </a>
   <a href="https://codecov.io/gh/GlobalFishingWatch/pipe-encounters">
     <img alt="Coverage" src="https://codecov.io/gh/GlobalFishingWatch/pipe-encounters/graph/badge.svg?token=XS7HTOWWYG">
   </a>
@@ -33,7 +36,9 @@ from vessel position data, AIS or VMS.
 - [How it works](#how-it-works)
 - [Known issues](#known-issues)
 - [Development](#development)
-- [Usage](#usage) * [Using the CLI](#using-the-cli) * [Config files](#config-files)
+- [Usage](#usage)
+  * [Using the CLI](#using-the-cli)
+  * [Config files](#config-files)
 - [References](#references)
 
 ## Introduction
