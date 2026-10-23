@@ -24,6 +24,11 @@ def test_reads_the_partial_encounters_that_start_in_the_date_range():
     assert "NOT IN" not in query
 
 
+def test_drops_the_partial_encounters_near_a_port_or_on_land():
+    assert "WHERE distance_from_port_m >= 10 * 1000 AND distance_from_shore_m > 0" in render()
+    assert "distance_from_port_m >= 5 * 1000" in render(min_distance_from_port_km=5)
+
+
 def test_maps_the_segments_of_each_segment_info_table_to_vessel_ids():
     query = render(
         source_segment_info=[("AIS:", "project.dataset.ais"), ("VMS:", "project.dataset.vms")]

@@ -12,8 +12,9 @@ from gfw.common.query import Query
 class PartialEncountersQuery(Query):
     """Partial encounters that start in [start_date, end_date), one row per partial encounter.
 
-    Each row gets both segments' vessel ids, from the segment info tables, and the distances
-    from shore and from port of its mean position, from the spatial measures table.
+    Each row gets both segments' vessel ids, from the segment info tables.
+    Drops the partial encounters whose mean position is less than ``min_distance_from_port_km``
+    from a port, or has no positive distance from shore, from the spatial measures table.
     Optionally skips the partial encounters of the bad segments ``bad_segs`` returns.
     Its fields are the template's variables (see template_vars).
     """
@@ -25,6 +26,7 @@ class PartialEncountersQuery(Query):
     start_date: datetime.date
     end_date: datetime.date
     bad_segs: str = None
+    min_distance_from_port_km: float = 10
 
     @property
     def template_filename(self) -> str:
