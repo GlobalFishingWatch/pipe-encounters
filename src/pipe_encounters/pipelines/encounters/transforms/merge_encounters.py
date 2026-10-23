@@ -4,16 +4,15 @@ import math
 from statistics import median
 
 import apache_beam as beam
-import pytz
-import six
 
 from apache_beam import FlatMap, GroupByKey, Map, PTransform
 
 from pipe_encounters.core.encounter import Encounter
+from pipe_encounters.encoding import to_text
 
 
 inf = float("inf")
-epoch = datetime.datetime.utcfromtimestamp(0).replace(tzinfo=pytz.utc)
+epoch = datetime.datetime.fromtimestamp(0, tz=datetime.timezone.utc)
 
 T = beam.typehints.TypeVariable("T")
 
@@ -79,10 +78,10 @@ class MergeEncounters(PTransform):
             end_lat=end_enc.end_lat,
             end_lon=end_enc.end_lon,
             vessel_1_seg_ids=sorted(
-                set([six.ensure_text(enc.vessel_1_seg_id) for (enc, p1, p2) in records])
+                set([to_text(enc.vessel_1_seg_id) for (enc, p1, p2) in records])
             ),
             vessel_2_seg_ids=sorted(
-                set([six.ensure_text(enc.vessel_2_seg_id) for (enc, p1, p2) in records])
+                set([to_text(enc.vessel_2_seg_id) for (enc, p1, p2) in records])
             ),
         )
 
@@ -121,7 +120,7 @@ class MergeEncounters(PTransform):
         return (
             xs
             | Map(self.key_by_ordered_id).with_output_types(
-                beam.typehints.Tuple[beam.typehints.Tuple[six.binary_type, six.binary_type], T]
+                beam.typehints.Tuple[beam.typehints.Tuple[bytes, bytes], T]
             )
             | "Group by Ordered ID" >> GroupByKey()
             | FlatMap(self.merge_encounters)

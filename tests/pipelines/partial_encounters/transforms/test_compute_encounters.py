@@ -1,9 +1,8 @@
 import datetime
 
-import pytz
 
 from pipe_encounters.core import encounter
-from pipe_encounters.utils.test import approx_equal_to
+from tests.utils import approx_equal_to
 from tests.pipelines.partial_encounters.transforms.steps import detect, records
 from tests.series_data import (
     dateline_series_data,
@@ -18,7 +17,8 @@ inf = float("inf")
 
 
 def ts(x):
-    return datetime.datetime.strptime(x, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=pytz.utc)
+    dt = datetime.datetime.strptime(x, "%Y-%m-%dT%H:%M:%SZ")
+    return dt.replace(tzinfo=datetime.timezone.utc)
 
 
 def test_simple_encounters():
@@ -113,8 +113,8 @@ def multi_expected():
         encounter.RawEncounter(
             vessel_1_seg_id=b"1",
             vessel_2_seg_id=b"2",
-            start_time=datetime.datetime(2011, 1, 1, 15, 40, tzinfo=pytz.UTC),
-            end_time=datetime.datetime(2011, 1, 1, 17, 40, tzinfo=pytz.UTC),
+            start_time=datetime.datetime(2011, 1, 1, 15, 40, tzinfo=datetime.timezone.utc),
+            end_time=datetime.datetime(2011, 1, 1, 17, 40, tzinfo=datetime.timezone.utc),
             mean_latitude=0.0,
             mean_longitude=0.0,
             median_distance_km=0.0,
@@ -129,8 +129,8 @@ def multi_expected():
         encounter.RawEncounter(
             vessel_1_seg_id=b"1",
             vessel_2_seg_id=b"3",
-            start_time=datetime.datetime(2011, 1, 1, 15, 40, tzinfo=pytz.UTC),
-            end_time=datetime.datetime(2011, 1, 1, 17, 40, tzinfo=pytz.UTC),
+            start_time=datetime.datetime(2011, 1, 1, 15, 40, tzinfo=datetime.timezone.utc),
+            end_time=datetime.datetime(2011, 1, 1, 17, 40, tzinfo=datetime.timezone.utc),
             mean_latitude=0.0,
             mean_longitude=0.0,
             median_distance_km=0.11119492664455874,
@@ -145,8 +145,8 @@ def multi_expected():
         encounter.RawEncounter(
             vessel_1_seg_id=b"2",
             vessel_2_seg_id=b"1",
-            start_time=datetime.datetime(2011, 1, 1, 15, 40, tzinfo=pytz.UTC),
-            end_time=datetime.datetime(2011, 1, 1, 17, 40, tzinfo=pytz.UTC),
+            start_time=datetime.datetime(2011, 1, 1, 15, 40, tzinfo=datetime.timezone.utc),
+            end_time=datetime.datetime(2011, 1, 1, 17, 40, tzinfo=datetime.timezone.utc),
             mean_latitude=0.0,
             mean_longitude=0.00046153846153749106,
             median_distance_km=0.0,
@@ -161,8 +161,8 @@ def multi_expected():
         encounter.RawEncounter(
             vessel_1_seg_id=b"2",
             vessel_2_seg_id=b"3",
-            start_time=datetime.datetime(2011, 1, 1, 15, 20, tzinfo=pytz.UTC),
-            end_time=datetime.datetime(2011, 1, 1, 17, 50, tzinfo=pytz.UTC),
+            start_time=datetime.datetime(2011, 1, 1, 15, 20, tzinfo=datetime.timezone.utc),
+            end_time=datetime.datetime(2011, 1, 1, 17, 50, tzinfo=datetime.timezone.utc),
             mean_latitude=0.0,
             mean_longitude=0.0004374999999984383,
             median_distance_km=0.11119492664455874,
@@ -177,8 +177,8 @@ def multi_expected():
         encounter.RawEncounter(
             vessel_1_seg_id=b"3",
             vessel_2_seg_id=b"1",
-            start_time=datetime.datetime(2011, 1, 1, 15, 40, tzinfo=pytz.UTC),
-            end_time=datetime.datetime(2011, 1, 1, 17, 40, tzinfo=pytz.UTC),
+            start_time=datetime.datetime(2011, 1, 1, 15, 40, tzinfo=datetime.timezone.utc),
+            end_time=datetime.datetime(2011, 1, 1, 17, 40, tzinfo=datetime.timezone.utc),
             mean_latitude=0.0,
             mean_longitude=0.000538461538462509,
             median_distance_km=0.11119492664455874,
@@ -193,8 +193,8 @@ def multi_expected():
         encounter.RawEncounter(
             vessel_1_seg_id=b"3",
             vessel_2_seg_id=b"2",
-            start_time=datetime.datetime(2011, 1, 1, 15, 20, tzinfo=pytz.UTC),
-            end_time=datetime.datetime(2011, 1, 1, 17, 50, tzinfo=pytz.UTC),
+            start_time=datetime.datetime(2011, 1, 1, 15, 20, tzinfo=datetime.timezone.utc),
+            end_time=datetime.datetime(2011, 1, 1, 17, 50, tzinfo=datetime.timezone.utc),
             mean_latitude=0.0,
             mean_longitude=0.0005625000000015619,
             median_distance_km=0.11119492664455874,
@@ -214,8 +214,8 @@ def nerfed_multi_expected():
         encounter.RawEncounter(
             vessel_1_seg_id=b"1",
             vessel_2_seg_id=b"2",
-            start_time=datetime.datetime(2011, 1, 1, 15, 40, tzinfo=pytz.UTC),
-            end_time=datetime.datetime(2011, 1, 1, 16, 40, tzinfo=pytz.UTC),
+            start_time=datetime.datetime(2011, 1, 1, 15, 40, tzinfo=datetime.timezone.utc),
+            end_time=datetime.datetime(2011, 1, 1, 16, 40, tzinfo=datetime.timezone.utc),
             mean_latitude=0.0,
             mean_longitude=0.0,
             median_distance_km=0.0,
@@ -230,8 +230,8 @@ def nerfed_multi_expected():
         encounter.RawEncounter(
             vessel_1_seg_id=b"1",
             vessel_2_seg_id=b"3",
-            start_time=datetime.datetime(2011, 1, 1, 16, 50, tzinfo=pytz.UTC),
-            end_time=datetime.datetime(2011, 1, 1, 17, 40, tzinfo=pytz.UTC),
+            start_time=datetime.datetime(2011, 1, 1, 16, 50, tzinfo=datetime.timezone.utc),
+            end_time=datetime.datetime(2011, 1, 1, 17, 40, tzinfo=datetime.timezone.utc),
             mean_latitude=0.0,
             mean_longitude=0.0,
             median_distance_km=0.0,
@@ -246,8 +246,8 @@ def nerfed_multi_expected():
         encounter.RawEncounter(
             vessel_1_seg_id=b"2",
             vessel_2_seg_id=b"1",
-            start_time=datetime.datetime(2011, 1, 1, 15, 40, tzinfo=pytz.UTC),
-            end_time=datetime.datetime(2011, 1, 1, 17, 40, tzinfo=pytz.UTC),
+            start_time=datetime.datetime(2011, 1, 1, 15, 40, tzinfo=datetime.timezone.utc),
+            end_time=datetime.datetime(2011, 1, 1, 17, 40, tzinfo=datetime.timezone.utc),
             mean_latitude=0.0,
             mean_longitude=0.00046153846153749106,
             median_distance_km=0.0,
@@ -262,8 +262,8 @@ def nerfed_multi_expected():
         encounter.RawEncounter(
             vessel_1_seg_id=b"3",
             vessel_2_seg_id=b"1",
-            start_time=datetime.datetime(2011, 1, 1, 15, 40, tzinfo=pytz.UTC),
-            end_time=datetime.datetime(2011, 1, 1, 17, 40, tzinfo=pytz.UTC),
+            start_time=datetime.datetime(2011, 1, 1, 15, 40, tzinfo=datetime.timezone.utc),
+            end_time=datetime.datetime(2011, 1, 1, 17, 40, tzinfo=datetime.timezone.utc),
             mean_latitude=0.0,
             mean_longitude=0.000538461538462509,
             median_distance_km=0.11119492664455874,
@@ -283,8 +283,8 @@ def dateline_expected():
         encounter.RawEncounter(
             b"1",
             b"2",
-            datetime.datetime(2011, 1, 1, 16, 10, tzinfo=pytz.UTC),
-            datetime.datetime(2011, 1, 1, 17, 10, tzinfo=pytz.UTC),
+            datetime.datetime(2011, 1, 1, 16, 10, tzinfo=datetime.timezone.utc),
+            datetime.datetime(2011, 1, 1, 17, 10, tzinfo=datetime.timezone.utc),
             -1.472143442857143,
             179.999,
             0.21170220169329662,
@@ -299,8 +299,8 @@ def dateline_expected():
         encounter.RawEncounter(
             b"2",
             b"1",
-            start_time=datetime.datetime(2011, 1, 1, 16, 10, tzinfo=pytz.UTC),
-            end_time=datetime.datetime(2011, 1, 1, 17, 10, tzinfo=pytz.UTC),
+            start_time=datetime.datetime(2011, 1, 1, 16, 10, tzinfo=datetime.timezone.utc),
+            end_time=datetime.datetime(2011, 1, 1, 17, 10, tzinfo=datetime.timezone.utc),
             mean_latitude=-1.4711380142857142,
             mean_longitude=-179.9993,
             median_distance_km=0.21170220169329662,

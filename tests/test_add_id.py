@@ -2,7 +2,7 @@ import datetime as dt
 from pipe_encounters.transforms import add_id
 import pytest
 
-epoch = dt.datetime.utcfromtimestamp(0)
+epoch = dt.datetime(1970, 1, 1)
 
 
 @pytest.mark.parametrize(

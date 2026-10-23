@@ -1,5 +1,3 @@
-from __future__ import division
-
 import datetime as dt
 import hashlib
 
@@ -13,7 +11,7 @@ class AddRawEncounterId(PTransform):
 
     def add_id(self, x):
         # Ensure that timestamps are naive or in UTC
-        start = dt.datetime.utcfromtimestamp(x["start_time"])
+        start = dt.datetime.fromtimestamp(x["start_time"], tz=dt.timezone.utc)
         text = f"{self.prefix}encounter|{x['vessel_1_seg_id']}|{x['vessel_2_seg_id']}|{start:%Y-%m-%d %H:%M:%S}"  # noqa
         x["encounter_id"] = hashlib.md5(text.encode("latin-1")).hexdigest()
         return x
@@ -29,7 +27,7 @@ class AddEncounterId(PTransform):
 
     def add_id(self, x):
         # Ensure that timestamps are naive or in UTC
-        start = dt.datetime.utcfromtimestamp(x["start_time"])
+        start = dt.datetime.fromtimestamp(x["start_time"], tz=dt.timezone.utc)
 
         text = (
             f"{self.prefix}encounter|{x['vessel_1_seg_ids'][0]}|{x['vessel_2_seg_ids'][0]}|"

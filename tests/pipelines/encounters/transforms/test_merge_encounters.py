@@ -1,7 +1,6 @@
-import six
-
 from pipe_encounters.core import encounter
-from pipe_encounters.utils.test import approx_equal_to
+from pipe_encounters.encoding import to_bytes
+from tests.utils import approx_equal_to
 from tests.pipelines.encounters.transforms.steps import merge
 from tests.pipelines.partial_encounters.transforms.steps import detect, records
 from tests.series_data import dateline_series_data, real_series_data
@@ -11,8 +10,8 @@ def add_fake_vessel_id(obj):
     obj = obj._asdict()
     for v in [1, 2]:
         obj[f"vessel_{v}_seg_id"] = (
-            six.ensure_binary(obj[f"vessel_{v}_seg_id"]),
-            six.ensure_binary(obj[f"vessel_{v}_seg_id"]),
+            to_bytes(obj[f"vessel_{v}_seg_id"]),
+            to_bytes(obj[f"vessel_{v}_seg_id"]),
         )
     return encounter.RawEncounter(**obj)
 

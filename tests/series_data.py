@@ -1,5 +1,4 @@
 import datetime
-import pytz
 from tests.pipelines.partial_encounters.transforms.test_resample import Record as Record
 
 # def Record(*args, **kwargs):
@@ -184,7 +183,7 @@ def text_to_records(vessel_id, text):
 
     def line_to_record(x):
         seconds, lat, lon, _ = x.split(",")
-        timestamp = datetime.datetime.utcfromtimestamp(float(seconds)).replace(tzinfo=pytz.utc)
+        timestamp = datetime.datetime.fromtimestamp(float(seconds), tz=datetime.timezone.utc)
         return Record(timestamp, float(lat), float(lon), id=vessel_id)
 
     return [line_to_record(x) for x in text.split("\n")]

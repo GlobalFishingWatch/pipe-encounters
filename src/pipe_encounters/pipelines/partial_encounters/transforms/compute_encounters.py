@@ -5,8 +5,6 @@ import math
 from collections import defaultdict
 from statistics import mean, median
 
-import six
-
 from apache_beam import FlatMap, GroupByKey, Map, PTransform
 
 from pipe_encounters.core.encounter import RawEncounter
@@ -16,13 +14,6 @@ from pipe_encounters.pipelines.partial_encounters.transforms.compute_adjacency i
 
 
 MPS_TO_KNOTS = 1.94384
-
-
-def pairwise(iterable):
-    """S -> (s0,s1), (s1,s2), (s2, s3), ..."""
-    a, b = it.tee(iterable)
-    next(b, None)
-    return six.moves.zip(a, b)
 
 
 def implied_speed_mps(rcd1, rcd2):
@@ -50,7 +41,7 @@ class ComputeEncounters(PTransform):
 
         implied_speeds = [
             implied_speed_mps(rcd1a, rcd1b)
-            for ((rcd1a, rcd2a, dista), (rcd1b, rcd2b, distb)) in pairwise(adjacency_run)
+            for ((rcd1a, rcd2a, dista), (rcd1b, rcd2b, distb)) in it.pairwise(adjacency_run)
         ]
 
         median_distance_km = median(dist for (rcd1, rcd2, dist) in adjacency_run)

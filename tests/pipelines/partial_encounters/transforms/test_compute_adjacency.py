@@ -1,16 +1,16 @@
 import numpy as np
-import six
 
 from pipe_encounters.core import record
+from pipe_encounters.encoding import to_bytes
 from pipe_encounters.pipelines.partial_encounters.transforms import compute_adjacency
-from pipe_encounters.utils.test import approx_equal_to
+from tests.utils import approx_equal_to
 from tests.pipelines.partial_encounters.transforms.steps import adjacency, resample
 from tests.pipelines.partial_encounters.transforms.test_resample import ResampledRecord
 from tests.series_data import simple_series_data
 
 
 def ensure_bytes_id(obj):
-    return obj._replace(id=six.ensure_binary(obj.id))
+    return obj._replace(id=to_bytes(obj.id))
 
 
 inf = float("inf")
