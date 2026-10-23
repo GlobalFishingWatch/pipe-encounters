@@ -45,7 +45,7 @@ DAY = datetime(2024, 1, 1, tzinfo=timezone.utc).timestamp()
 HOUR = 3600
 
 
-def partial_encounter(seg_1, seg_2, start, end, points=6, distance_from_port_m=50_000):
+def partial_encounter(seg_1, seg_2, start, end, points=6):
     """A row shaped like PartialEncountersQuery's output. Segment 'A1' is of vessel 'vessel-A'."""
     return dict(
         vessel_1_seg_id=seg_1,
@@ -64,19 +64,15 @@ def partial_encounter(seg_1, seg_2, start, end, points=6, distance_from_port_m=5
         start_lon=2.0,
         end_lat=1.0,
         end_lon=2.0,
-        distance_from_shore_m=20_000,
-        distance_from_port_m=distance_from_port_m,
     )
 
 
-# An encounter from 22:00 to 02:00, split at midnight, each piece from both vessels' sides,
-# and a piece of another encounter next to a port.
+# An encounter from 22:00 to 02:00, split at midnight, each piece from both vessels' sides.
 PARTIAL_ENCOUNTERS = [
     partial_encounter("A1", "B1", DAY + 22 * HOUR, DAY + 23 * HOUR + 50 * 60),
     partial_encounter("B1", "A1", DAY + 22 * HOUR, DAY + 23 * HOUR + 50 * 60),
     partial_encounter("A1", "B1", DAY + 24 * HOUR, DAY + 26 * HOUR),
     partial_encounter("B1", "A1", DAY + 24 * HOUR, DAY + 26 * HOUR),
-    partial_encounter("C1", "D1", DAY, DAY + 3 * HOUR, distance_from_port_m=5_000),
 ]
 
 
