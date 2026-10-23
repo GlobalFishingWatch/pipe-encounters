@@ -1,6 +1,6 @@
 import datetime
 import pytz
-from .test_resample import Record as Record
+from tests.pipelines.partial_encounters.transforms.test_resample import Record as Record
 
 # def Record(*args, **kwargs):
 #     kwargs['id'] = kwargs['id'].encode('ascii')

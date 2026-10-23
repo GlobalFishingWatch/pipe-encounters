@@ -13,7 +13,7 @@ from apache_beam.options.pipeline_options import StandardOptions
 from apache_beam.runners import PipelineState
 from gfw.common.beam.pipeline.base import Pipeline
 
-from pipe_encounters.objects.encounter import Encounter, RawEncounter
+from pipe_encounters.core.encounter import Encounter, RawEncounter
 from pipe_encounters.schemas.output import build as merge_schema
 from pipe_encounters.transforms.add_id import AddEncounterId
 from pipe_encounters.transforms.merge_encounters import MergeEncounters
