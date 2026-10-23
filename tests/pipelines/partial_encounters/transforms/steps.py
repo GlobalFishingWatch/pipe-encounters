@@ -6,6 +6,10 @@ transform's own methods. GroupByKey's order doesn't matter: each method sorts wh
 
 from collections import defaultdict
 
+import six
+
+from pipe_encounters.core import record
+
 from pipe_encounters.pipelines.partial_encounters.transforms.compute_adjacency import (
     ComputeAdjacency,
 )
@@ -53,3 +57,16 @@ def encounters(annotated, **kwargs):
         for group in groups
         for encounter in transform.compute_encounters(transform.sort_by_time(group))
     ]
+
+
+def records(series_data):
+    return [record.Record(*x)._replace(id=six.ensure_binary(x[0])) for x in series_data]
+
+
+def detect(records, max_tracked_distances=100):
+    """Resample, ComputeAdjacency and ComputeEncounters, as these tests always applied them."""
+    resampled = resample(records, increment_s=60 * 10, max_gap_s=60 * 70, extrapolate=False)
+    annotated = adjacency(
+        resampled, max_adjacency_distance_km=1.0, max_tracked_distances=max_tracked_distances
+    )
+    return encounters(annotated, max_km_for_encounter=0.5, min_minutes_for_encounter=30)

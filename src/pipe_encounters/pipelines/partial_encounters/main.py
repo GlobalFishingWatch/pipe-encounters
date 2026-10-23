@@ -20,16 +20,8 @@ from pipe_encounters.pipelines.partial_encounters.table_config import (
     PartialEncountersTableDescription,
 )
 from pipe_encounters.pipelines.partial_encounters.transforms.core import DetectPartialEncounters
+from pipe_encounters.sources import split_id_prefix
 from pipe_encounters.utils.ver import __version__
-
-
-def split_id_prefix(source: str) -> tuple[str, str]:
-    """Splits a positions source, optionally "ID::table", into its seg_id prefix and table."""
-    if "::" not in source:
-        return "", source
-
-    id_prefix, table = source.split("::", 1)
-    return f"{id_prefix}:", table
 
 
 def read_ssvid_filter(ssvid_filter: str) -> str:

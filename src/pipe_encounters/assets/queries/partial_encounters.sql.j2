@@ -1,0 +1,46 @@
+WITH
+
+partial_encounters AS (
+    SELECT
+        * EXCEPT (start_time, end_time, encounter_id),
+        CAST(UNIX_MICROS(start_time) AS FLOAT64) / 1000000 AS start_time,
+        CAST(UNIX_MICROS(end_time) AS FLOAT64) / 1000000 AS end_time,
+        FORMAT(
+            "lon:%+07.2f_lat:%+07.2f",
+            FLOOR(CAST(mean_longitude AS NUMERIC) / NUMERIC '0.01') * NUMERIC '0.01',
+            FLOOR(CAST(mean_latitude AS NUMERIC) / NUMERIC '0.01') * NUMERIC '0.01'
+        ) AS gridcode
+    FROM
+        `{{ source_partial_encounters }}`
+    WHERE
+        DATE(start_time) >= '{{ start_date }}'
+        AND DATE(start_time) < '{{ end_date }}'
+{% if bad_segs %}
+        AND vessel_1_seg_id NOT IN (SELECT seg_id FROM {{ bad_segs }})
+        AND vessel_2_seg_id NOT IN (SELECT seg_id FROM {{ bad_segs }})
+{% endif %}
+),
+
+vessel_ids AS (
+{% for id_prefix, table in source_segment_info %}
+{% if not loop.first %}
+    UNION ALL
+{% endif %}
+    SELECT CONCAT("{{ id_prefix }}", seg_id) AS seg_id, vessel_id FROM `{{ table }}`
+{% endfor %}
+)
+
+SELECT
+    partial_encounters.* EXCEPT (gridcode),
+    vid1.vessel_id AS vessel_1_id,
+    vid2.vessel_id AS vessel_2_id,
+    distance_from_shore_m,
+    distance_from_port_m
+FROM
+    partial_encounters
+JOIN vessel_ids AS vid1
+    ON vessel_1_seg_id = vid1.seg_id
+JOIN vessel_ids AS vid2
+    ON vessel_2_seg_id = vid2.seg_id
+JOIN `{{ source_spatial_measures }}`
+    USING (gridcode)
