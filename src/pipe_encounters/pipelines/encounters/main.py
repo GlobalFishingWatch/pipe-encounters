@@ -21,7 +21,7 @@ from pipe_encounters.utils.ver import __version__
 
 
 def partial_encounters_query(config: EncountersConfig) -> PartialEncountersQuery:
-    """Returns the query that reads the partial encounters away from port, with their vessel ids."""
+    """Returns the query that reads the partial encounters away from port, with vessel ids."""
     query = PartialEncountersQuery(
         source_partial_encounters=config.bq_in_partial_encounters,
         source_segment_info=config.bq_in_segment_info,
