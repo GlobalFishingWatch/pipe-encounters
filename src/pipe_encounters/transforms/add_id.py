@@ -5,14 +5,13 @@ from apache_beam import Map, PTransform
 
 
 class AddRawEncounterId(PTransform):
-
     def __init__(self, prefix=""):
         self.prefix = prefix
 
     def add_id(self, x):
         # Ensure that timestamps are naive or in UTC
         start = dt.datetime.fromtimestamp(x["start_time"], tz=dt.timezone.utc)
-        text = f"{self.prefix}encounter|{x['vessel_1_seg_id']}|{x['vessel_2_seg_id']}|{start:%Y-%m-%d %H:%M:%S}"  # noqa
+        text = f"{self.prefix}encounter|{x['vessel_1_seg_id']}|{x['vessel_2_seg_id']}|{start:%Y-%m-%d %H:%M:%S}"
         x["encounter_id"] = hashlib.md5(text.encode("latin-1")).hexdigest()
         return x
 
@@ -21,7 +20,6 @@ class AddRawEncounterId(PTransform):
 
 
 class AddEncounterId(PTransform):
-
     def __init__(self, prefix=""):
         self.prefix = prefix
 

@@ -5,20 +5,26 @@ from datetime import date
 import pytest
 
 from gfw.common.config import PipelineConfigError
-
 from pipe_encounters.cli import main
 from pipe_encounters.pipelines.partial_encounters.config import PartialEncountersConfig
 
 
 BASE_ARGS = [
     "partial-encounters",
-    "--bq-in-positions", "project.dataset.messages",
-    "--bq-out-partial-encounters", "project.dataset.raw_encounters",
-    "--start-date", "2024-01-01",
-    "--end-date", "2024-01-08",
-    "--max-encounter-dist-km", "0.5",
-    "--min-encounter-time-minutes", "120",
-    "--labels", "environment=test",
+    "--bq-in-positions",
+    "project.dataset.messages",
+    "--bq-out-partial-encounters",
+    "project.dataset.raw_encounters",
+    "--start-date",
+    "2024-01-01",
+    "--end-date",
+    "2024-01-08",
+    "--max-encounter-dist-km",
+    "0.5",
+    "--min-encounter-time-minutes",
+    "120",
+    "--labels",
+    "environment=test",
 ]
 
 

@@ -1,4 +1,5 @@
 import datetime as dt
+
 from pipe_encounters.core import record
 from pipe_encounters.pipelines.partial_encounters.transforms import resample
 

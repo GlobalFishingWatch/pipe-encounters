@@ -1,8 +1,6 @@
 import datetime
 
-
 from pipe_encounters.core import encounter
-from tests.utils import approx_equal_to
 from tests.pipelines.partial_encounters.transforms.steps import detect, records
 from tests.series_data import (
     dateline_series_data,
@@ -11,6 +9,7 @@ from tests.series_data import (
     real_series_data,
     simple_series_data,
 )
+from tests.utils import approx_equal_to
 
 
 inf = float("inf")

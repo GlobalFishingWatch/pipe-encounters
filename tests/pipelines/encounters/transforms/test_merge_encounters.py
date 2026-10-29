@@ -1,9 +1,9 @@
 from pipe_encounters.core import encounter
 from pipe_encounters.encoding import to_bytes
-from tests.utils import approx_equal_to
 from tests.pipelines.encounters.transforms.steps import merge
 from tests.pipelines.partial_encounters.transforms.steps import detect, records
 from tests.series_data import dateline_series_data, real_series_data
+from tests.utils import approx_equal_to
 
 
 def add_fake_vessel_id(obj):

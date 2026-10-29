@@ -1,7 +1,6 @@
 import datetime as dtime
 import math
 
-
 from apache_beam import FlatMap, PTransform
 from more_itertools import peekable
 

@@ -1,5 +1,7 @@
 import datetime
+
 from tests.pipelines.partial_encounters.transforms.test_resample import Record as Record
+
 
 # def Record(*args, **kwargs):
 #     kwargs['id'] = kwargs['id'].encode('ascii')

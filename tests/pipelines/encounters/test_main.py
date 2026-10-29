@@ -3,8 +3,8 @@ from datetime import date, datetime, timezone
 import apache_beam as beam
 
 from apache_beam.testing.util import assert_that
-from gfw.common.beam.transforms.bigquery import FakeReadFromBigQuery
 
+from gfw.common.beam.transforms.bigquery import FakeReadFromBigQuery
 from pipe_encounters.assets import schemas
 from pipe_encounters.pipelines.encounters.config import EncountersConfig
 from pipe_encounters.pipelines.encounters.main import partial_encounters_query, run

@@ -18,7 +18,6 @@ T = beam.typehints.TypeVariable("T")
 
 
 class MergeEncounters(PTransform):
-
     def __init__(self, min_hours_between_encounters):
         self.min_hours_between_encounters = min_hours_between_encounters
 

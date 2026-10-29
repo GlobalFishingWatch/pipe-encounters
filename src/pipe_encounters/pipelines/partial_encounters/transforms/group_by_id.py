@@ -2,7 +2,6 @@ from apache_beam import GroupByKey, Map, PTransform
 
 
 class GroupByIdAndDate(PTransform):
-
     def tag_with_id(self, value):
         return (f"{value.id}_{value.timestamp.date()}", value)
 

@@ -23,7 +23,6 @@ def implied_speed_mps(rcd1, rcd2):
 
 
 class ComputeEncounters(PTransform):
-
     def __init__(self, max_km_for_encounter, min_minutes_for_encounter):
         self.min_minutes_for_encounter = min_minutes_for_encounter
         self.max_km_for_encounter = max_km_for_encounter

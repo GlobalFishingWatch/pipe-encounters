@@ -13,7 +13,6 @@ from gfw.common.beam.pipeline.hooks import (
 )
 from gfw.common.beam.transforms import ReadFromBigQuery, WriteToBigQueryWrapper
 from gfw.common.bigquery.helper import BigQueryHelper
-
 from pipe_encounters.pipelines.partial_encounters.config import PartialEncountersConfig
 from pipe_encounters.pipelines.partial_encounters.queries import PositionsQuery
 from pipe_encounters.pipelines.partial_encounters.table_config import (

@@ -8,7 +8,6 @@ from collections import defaultdict
 
 from pipe_encounters.core import record
 from pipe_encounters.encoding import to_bytes
-
 from pipe_encounters.pipelines.partial_encounters.transforms.compute_adjacency import (
     ComputeAdjacency,
 )

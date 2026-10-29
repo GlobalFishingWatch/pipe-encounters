@@ -4,7 +4,6 @@ from dataclasses import dataclass
 
 from gfw.common.bigquery.table_config import TableConfig
 from gfw.common.bigquery.table_description import TableDescription
-
 from pipe_encounters.assets import schemas
 
 

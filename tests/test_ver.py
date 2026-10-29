@@ -1,5 +1,6 @@
-from pipe_encounters.utils.ver import __version__
 import re
+
+from pipe_encounters.utils.ver import __version__
 
 
 def test_get_pipe_ver():

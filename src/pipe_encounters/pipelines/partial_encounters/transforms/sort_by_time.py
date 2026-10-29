@@ -18,7 +18,7 @@ def median(iterable):
     quotient, remainder = divmod(len(seq), 2)
     if remainder:
         return seq[quotient]
-    return sum(seq[quotient - 1: quotient + 1]) / 2
+    return sum(seq[quotient - 1 : quotient + 1]) / 2
 
 
 class SortByTime(PTransform):

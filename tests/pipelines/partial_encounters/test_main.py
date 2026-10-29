@@ -3,9 +3,9 @@ from datetime import date, datetime, timezone
 import apache_beam as beam
 
 from apache_beam.testing.util import assert_that
+
 from gfw.common.beam.transforms.bigquery import FakeReadFromBigQuery
 from gfw.common.bigquery.helper import BigQueryHelper
-
 from pipe_encounters.assets import schemas
 from pipe_encounters.pipelines.partial_encounters.config import PartialEncountersConfig
 from pipe_encounters.pipelines.partial_encounters.main import (

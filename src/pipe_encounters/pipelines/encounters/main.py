@@ -9,7 +9,6 @@ from gfw.common.beam.pipeline.dag import LinearDag
 from gfw.common.beam.pipeline.hooks import create_table_hook, update_table_metadata_hook
 from gfw.common.beam.transforms import ReadFromBigQuery, WriteToBigQueryWrapper
 from gfw.common.bigquery.helper import BigQueryHelper
-
 from pipe_encounters.pipelines.encounters.config import EncountersConfig
 from pipe_encounters.pipelines.encounters.queries import PartialEncountersQuery
 from pipe_encounters.pipelines.encounters.table_config import (
