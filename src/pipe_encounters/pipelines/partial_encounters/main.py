@@ -134,7 +134,6 @@ def run(
             min_encounter_time_minutes=config.min_encounter_time_minutes,
             max_gap_seconds=config.max_gap_seconds,
             max_gap_seconds_inclusive=config.max_gap_seconds_inclusive,
-            schema=table_config.schema,
         ),
         sinks=(
             WriteToBigQueryWrapper(
