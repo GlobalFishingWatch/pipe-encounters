@@ -51,9 +51,9 @@ The pipeline takes `start_date` and `end_date`. The pipeline pads `start_date`
 by one day to warm up, reads the data from from `source_table` and computes
 encounters over the specified window.
 In incremental mode, `end_date` is the day after `start_date`, since the end date is
-exclusive. The partial encounters are *appended* to the `bq_out_partial_encounters` table. A second pipeline
-is then run over this second table, merging encounters that are close in time into
-one long encounter and *replacing* the table specified in `sink` with the merged results.
+exclusive. The partial encounters are *appended* to the `bq_out_partial_encounters` table. The second command,
+`encounters`, then joins the pieces that are close in time into one encounter per pair of
+vessels, *replacing* the `bq_out_encounters` table with the results.
 
 ## CLI
 
@@ -83,55 +83,33 @@ or, with a configuration file (command-line arguments take precedence over it):
 
 Run `docker compose run pipeline partial-encounters --help` for all its options.
 
-The raw encounters are then merged together, removing duplicates and merging across day boundaries:
+The second step, `encounters`, joins the partial encounters into one row per encounter between
+two vessels. It replaces its output table, so it's usually run over the whole history:
 
-
-        docker compose run pipeline merge_encounters \
-                --raw_table RAW_TABLE \
-                --vessel_id_table SEGMENT_TABLE \
-                --sink_table MERGED_TABLE \
-                --max_encounter_dist_km 0.5 \
-                --min_encounter_time_minutes 120 \
-                --start_date 2018-01-01 \
-                --end_date 2018-12-31 \
+        docker compose run pipeline encounters \
+                --bq-in-partial-encounters RAW_TABLE \
+                --bq-in-segment-info SEGMENT_INFO_TABLE \
+                --bq-in-spatial-measures SPATIAL_MEASURES_TABLE \
+                --bq-out-encounters ENCOUNTERS_TABLE \
+                --start-date FIRST_DATE \
+                --end-date DATE \
+                --labels environment=development resource_creator=YOUR_NAME \
                 --project world-fishing-827 \
-                --temp_location gs://world-fishing-827-dev-ttl30d/scratch/encounters \
-                --job_name encounters-merge-test \
-                --max_num_workers 50 \
-                --setup_file ./setup.py \
-                --requirements_file requirements.txt \
                 --runner DataflowRunner \
-                --disk_size_gb 100 \
                 --region us-central1
 
+or, with a configuration file:
 
-Currently, raw encounters are created based on segment id, since this is a stable (static)
-identifier. During the merge process, encounters are merged using vessel id, which does a better
-job stitching together segments, but is not stable. This is feasible since the merging process
-happens later in the pipeline and is run across all time on every day.
+        docker compose run pipeline encounters -c config/encounters/bq-full-history.yaml
 
-Note that raw_table needs to be persistent since it is date sharded and new dates
-are added with each run.
+Run `docker compose run pipeline encounters --help` for all its options.
 
+Partial encounters are identified by segment id, since it's a stable (static) identifier.
+The encounters are joined by vessel id, which does a better job stitching segments together,
+but isn't stable. That works because joining happens later in the pipeline and runs over the
+whole history every day.
 
-        docker compose run pipeline merge_encounters \
-                --raw_table machine_learning_dev_ttl_120d.raw_encounters_test_ \
-                --vessel_id_table pipe_production_v20201001.segment_info \
-                --sink_table world-fishing-827:machine_learning_dev_ttl_120d.encounters_test_v20210718 \
-                --spatial_measures_table world-fishing-827.pipe_static.spatial_measures_20200311 \
-                --min_encounter_time_minutes 120 \
-                --start_date 2018-01-01 \
-                --end_date 2018-01-31 \
-                --project world-fishing-827 \
-                --temp_location gs://world-fishing-827-dev-ttl30d/scratch/encounters \
-                --job_name encounters-merge-test \
-                --max_num_workers 50 \
-                --setup_file ./setup.py \
-                --requirements_file requirements.txt \
-                --runner DataflowRunner \
-                --disk_size_gb 100 \
-                --region us-central1
-
+Note that the partial encounters table needs to be persistent, since each run appends new dates.
 
 
 # License

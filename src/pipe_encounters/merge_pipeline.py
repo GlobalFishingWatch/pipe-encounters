@@ -1,18 +1,19 @@
 import logging
 
-from datetime import datetime, timedelta
+from datetime import timedelta
+from types import SimpleNamespace
+from typing import Any
 
 import apache_beam as beam
 import numpy as np
-import pytz
 import six
 
-from apache_beam import Filter, FlatMap, Flatten, Map, Pipeline
-from apache_beam.options.pipeline_options import GoogleCloudOptions, StandardOptions
+from apache_beam import Filter, FlatMap, Flatten, Map
+from apache_beam.options.pipeline_options import StandardOptions
 from apache_beam.runners import PipelineState
+from gfw.common.beam.pipeline.base import Pipeline
 
 from pipe_encounters.objects.encounter import Encounter, RawEncounter
-from pipe_encounters.options.merge_options import MergeOptions
 from pipe_encounters.schemas.output import build as merge_schema
 from pipe_encounters.transforms.add_id import AddEncounterId
 from pipe_encounters.transforms.merge_encounters import MergeEncounters
@@ -21,23 +22,21 @@ from pipe_encounters.transforms.writers import WriteEncountersToBQ
 from pipe_encounters.utils.ver import __version__
 
 
-def get_description(options: MergeOptions):
+ERROR_EMPTY_RANGE = "end_date ({1}) must be after start_date ({0})."
+
+
+def get_description(config: SimpleNamespace):
     return f"""\
 Created by the encounters_pipeline: {__version__}
 * Merges the encounters that are close in time into one long encounter.
 * https://github.com/GlobalFishingWatch/encounters_pipeline
-* Source raw encounters: {options.sink_table}
-* Source vessel id: {options.vessel_id_tables}
-* Source Spatial Measure: {options.spatial_measures_table}
-* Min hours before encounter: {options.min_hours_between_encounters}
-* Skip bad segments table? {"Yes" if options.bad_segs_table else "No"}
-* Date range: {options.start_date}, {options.end_date}
+* Source partial encounters: {config.bq_in_partial_encounters}
+* Source vessel id: {config.bq_in_segment_info}
+* Source Spatial Measure: {config.bq_in_spatial_measures}
+* Min hours before encounter: {config.min_hours_between_encounters}
+* Skip bad segments table? {"Yes" if config.bad_segs else "No"}
+* Date range: [{config.start_date}, {config.end_date})
 """
-
-
-def labels_to_dict(labels):
-    """Parses the legacy --labels key=value list into a dictionary."""
-    return {x.split("=")[0]: x.split("=")[1] for x in labels}
 
 
 def combine_ids(obj):
@@ -49,12 +48,8 @@ def combine_ids(obj):
     return obj
 
 
-def create_queries(args):
-    start_time = datetime.fromisoformat(args.start_date).replace(tzinfo=pytz.utc)
-    end_time = datetime.fromisoformat(args.end_date).replace(tzinfo=pytz.utc)
-
-    start_date = start_time.date()
-    end_date = end_time.date()
+def create_queries(args, start_date, end_date):
+    """Yields the queries that read the partial encounters of [start_date, end_date], inclusive."""
 
     template = """
     WITH
@@ -88,17 +83,17 @@ def create_queries(args):
     JOIN  `{spatial_measures_table}`
     USING (gridcode)
     """
-    if args.bad_segs_table is None:
+    if args.bad_segs is None:
         condition = ""
     else:
         # TODO: need multiple bad segs tables to support multiple inputs.
         # Need optional 'prefix::' for them
-        condition = f"""  AND vessel_1_seg_id NOT IN (SELECT seg_id FROM {args.bad_segs_table})
-                          AND vessel_2_seg_id NOT IN (SELECT seg_id FROM {args.bad_segs_table})
+        condition = f"""  AND vessel_1_seg_id NOT IN (SELECT seg_id FROM {args.bad_segs})
+                          AND vessel_2_seg_id NOT IN (SELECT seg_id FROM {args.bad_segs})
         """
 
     subqueries = []
-    for table in args.vessel_id_tables:
+    for table in args.bq_in_segment_info:
         if "::" in table:
             id_prefix, table = table.split("::", 1)
             id_prefix += ":"
@@ -114,12 +109,12 @@ def create_queries(args):
     while start_window <= end_date:
         end_window = min(start_window + timedelta(days=shift), end_date)
         query = template.format(
-            raw_table=args.raw_table,
+            raw_table=args.bq_in_partial_encounters,
             condition=condition,
             vessel_id_query=vessel_id_query,
             start=start_window.isoformat(),
             end=end_window.isoformat(),
-            spatial_measures_table=args.spatial_measures_table,
+            spatial_measures_table=args.bq_in_spatial_measures,
         )
 
         yield query
@@ -143,17 +138,25 @@ def tag_with_gridcode(x):
     return (gc, x)
 
 
-def run(options):
-    p = Pipeline(options=options)
+def run(config: SimpleNamespace, **kwargs: Any) -> int:
+    pipeline = Pipeline(
+        unparsed_args=config.unknown_unparsed_args,
+        labels=config.labels,
+        **config.unknown_parsed_args,
+        **kwargs,
+    )
+    project = pipeline.cloud_options.project
+    p = pipeline.pipeline
 
-    merge_options = options.view_as(MergeOptions)
-    cloud_options = options.view_as(GoogleCloudOptions)
-    labels = labels_to_dict(cloud_options.labels)
+    # The CLI's end date is exclusive; the pipeline works on the last day it includes.
+    last_date = config.end_date - timedelta(days=1)
+    if last_date < config.start_date:
+        raise ValueError(ERROR_EMPTY_RANGE.format(config.start_date, config.end_date))
 
-    queries = create_queries(merge_options)
+    queries = create_queries(config, config.start_date, last_date)
 
     sources = [
-        (p | f"Read_{i}" >> ReadSources(query=query, project=cloud_options.project, labels=labels))
+        (p | f"Read_{i}" >> ReadSources(query=query, project=project, labels=config.labels))
         for (i, query) in enumerate(queries)
     ]
 
@@ -163,21 +166,21 @@ def run(options):
         | "CombineSegVesselIds" >> Map(combine_ids)
         | FlatMap(filter_by_distance, min_distance_from_port_km=10)
         | RawEncounter.FromDict()
-        | MergeEncounters(min_hours_between_encounters=merge_options.min_hours_between_encounters)
+        | MergeEncounters(min_hours_between_encounters=config.min_hours_between_encounters)
     )
 
-    if merge_options.min_encounter_time_minutes is not None:
+    if config.min_encounter_time_minutes is not None:
         merged = merged | Filter(
             lambda x: (x.end_time - x.start_time).total_seconds() / 60.0
-            >= merge_options.min_encounter_time_minutes
+            >= config.min_encounter_time_minutes
         )
 
     writer = WriteEncountersToBQ(
-        table_id=merge_options.sink_table,
+        table_id=config.bq_out_encounters,
         schema=merge_schema(),
-        project=cloud_options.project,
-        labels=labels,
-        description=get_description(merge_options),
+        project=project,
+        labels=config.labels,
+        description=get_description(config),
         write_disposition=beam.io.BigQueryDisposition.WRITE_TRUNCATE,
     )
 
@@ -187,7 +190,8 @@ def run(options):
 
     success_states = set([PipelineState.DONE])
 
-    if merge_options.wait_for_job or options.view_as(StandardOptions).runner == "DirectRunner":
+    runner = pipeline.pipeline_options.view_as(StandardOptions).runner
+    if config.wait_for_job or runner == "DirectRunner":
         result.wait_until_finish()
         if result.state in success_states:
             writer.update_table_metadata()
