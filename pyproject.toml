@@ -33,7 +33,7 @@ classifiers = [
 requires-python = ">= 3.12"
 dependencies = [
   "apache-beam[gcp]~=2.76",
-  "gfw-common[bq,beam]~=0.20.3",
+  "gfw-common[bq,beam]~=0.23.0",
   "more-itertools~=10.0",
   "s2sphere~=0.2",
 ]

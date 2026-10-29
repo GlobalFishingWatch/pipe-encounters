@@ -4,6 +4,7 @@ import apache_beam as beam
 
 from apache_beam.testing.util import assert_that
 from gfw.common.beam.transforms.bigquery import FakeReadFromBigQuery
+from gfw.common.bigquery.helper import BigQueryHelper
 
 from pipe_encounters.assets import schemas
 from pipe_encounters.pipelines.partial_encounters.config import PartialEncountersConfig
@@ -114,10 +115,17 @@ def test_run(tmp_path):
         writes.append(kwargs)
         return AssertWritten(check_one_encounter_seen_from_both_segments, **kwargs)
 
+    bq_clients = []
+
+    def bq_client_factory(**kwargs):
+        bq_clients.append(BigQueryHelper.get_client_factory(mocked=True)(**kwargs))
+        return bq_clients[-1]
+
     run(
         config(mock_bq_clients=True, unknown_parsed_args={"project": "test-project"}),
         read_from_bigquery_factory=read_factory,
         write_to_bigquery_factory=write_factory,
+        bq_client_factory=bq_client_factory,
         runner=RUNNER,
     )
 
@@ -127,3 +135,7 @@ def test_run(tmp_path):
     assert writes[0]["table"] == "project.dataset.raw_encounters"
     assert writes[0]["write_disposition"] == "WRITE_APPEND"
     assert writes[0]["create_disposition"] == "CREATE_NEVER"
+
+    queries = [c for client in bq_clients for c in client.query.call_args_list]
+    (delete,) = [c for c in queries if c.args[0].startswith("DELETE")]
+    assert delete.kwargs["job_config"].labels == {"environment": "test"}

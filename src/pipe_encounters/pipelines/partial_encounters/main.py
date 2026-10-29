@@ -6,11 +6,14 @@ import apache_beam as beam
 
 from gfw.common.beam.pipeline.base import Pipeline
 from gfw.common.beam.pipeline.dag import LinearDag
-from gfw.common.beam.pipeline.hooks import create_table_hook, delete_events_hook
+from gfw.common.beam.pipeline.hooks import (
+    create_table_hook,
+    delete_events_hook,
+    update_table_metadata_hook,
+)
 from gfw.common.beam.transforms import ReadFromBigQuery, WriteToBigQueryWrapper
 from gfw.common.bigquery.helper import BigQueryHelper
 
-from pipe_encounters.hooks import update_table_metadata_hook
 from pipe_encounters.pipelines.partial_encounters.config import PartialEncountersConfig
 from pipe_encounters.pipelines.partial_encounters.queries import PositionsQuery
 from pipe_encounters.pipelines.partial_encounters.table_config import (
@@ -147,15 +150,22 @@ def run(
     pipeline = Pipeline(
         dag=dag,
         pre_hooks=[
-            create_table_hook(table_config, mock=config.mock_bq_clients),
+            create_table_hook(
+                table_config, labels=config.labels, bq_client_factory=bq_client_factory
+            ),
             delete_events_hook(
                 table_config,
                 start_date=config.start_date,
                 end_date=config.end_date,
-                mock=config.mock_bq_clients,
+                labels=config.labels,
+                bq_client_factory=bq_client_factory,
             ),
         ],
-        post_hooks=[update_table_metadata_hook(table_config, config.labels, bq_client_factory)],
+        post_hooks=[
+            update_table_metadata_hook(
+                table_config, labels=config.labels, bq_client_factory=bq_client_factory
+            )
+        ],
         unparsed_args=config.unknown_unparsed_args,
         labels=config.labels,
         **config.unknown_parsed_args,
