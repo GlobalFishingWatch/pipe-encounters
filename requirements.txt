@@ -17,7 +17,9 @@ anyio==4.12.1
     #   google-genai
     #   httpx
 apache-beam==2.76.0
-    # via pipe-encounters (pyproject.toml)
+    # via
+    #   pipe-encounters (pyproject.toml)
+    #   gfw-common
 asn1crypto==1.5.1
     # via scramp
 attrs==25.4.0
@@ -63,6 +65,8 @@ frozenlist==1.8.0
     #   aiosignal
 future==1.0.0
     # via s2sphere
+gfw-common==0.20.3
+    # via pipe-encounters (pyproject.toml)
 google-api-core==2.30.0
     # via
     #   apache-beam
@@ -122,6 +126,7 @@ google-cloud-aiplatform==1.138.0
 google-cloud-bigquery==3.40.1
     # via
     #   apache-beam
+    #   gfw-common
     #   google-cloud-aiplatform
 google-cloud-bigquery-storage==2.36.2
     # via apache-beam
@@ -254,12 +259,20 @@ jeepney==0.9.0
     # via
     #   keyring
     #   secretstorage
+jinja2==3.1.6
+    # via gfw-common
 jsonpickle==3.4.2
     # via apache-beam
 keyring==25.7.0
     # via keyrings-google-artifactregistry-auth
 keyrings-google-artifactregistry-auth==1.1.2
     # via apache-beam
+markdown-it-py==4.2.0
+    # via rich
+markupsafe==3.0.4
+    # via jinja2
+mdurl==0.1.2
+    # via markdown-it-py
 mmh3==5.2.0
     # via google-cloud-spanner
 more-itertools==10.8.0
@@ -361,7 +374,9 @@ protobuf==6.33.5
     #   grpcio-status
     #   proto-plus
 pyarrow==18.1.0
-    # via apache-beam
+    # via
+    #   apache-beam
+    #   gfw-common
 pyasn1==0.6.2
     # via
     #   oauth2client
@@ -379,6 +394,8 @@ pydantic==2.12.5
     #   google-genai
 pydantic-core==2.41.5
     # via pydantic
+pygments==2.21.0
+    # via rich
 pymongo==4.16.0
     # via apache-beam
 pymysql==1.1.2
@@ -388,6 +405,7 @@ pyparsing==3.3.2
 python-dateutil==2.9.0.post0
     # via
     #   apache-beam
+    #   gfw-common
     #   google-cloud-bigquery
     #   pg8000
 python-tds==1.17.1
@@ -395,7 +413,9 @@ python-tds==1.17.1
 pytz==2025.2
     # via apache-beam
 pyyaml==6.0.3
-    # via apache-beam
+    # via
+    #   apache-beam
+    #   gfw-common
 regex==2026.2.19
     # via apache-beam
 requests==2.32.5
@@ -409,6 +429,8 @@ requests==2.32.5
     #   google-genai
     #   keyrings-google-artifactregistry-auth
     #   opentelemetry-resourcedetector-gcp
+rich==14.3.4
+    # via gfw-common
 rsa==4.9.1
     # via
     #   google-auth
@@ -428,8 +450,10 @@ sniffio==1.3.1
     # via google-genai
 sortedcontainers==2.4.0
     # via apache-beam
-sqlparse==0.5.5
-    # via google-cloud-spanner
+sqlparse==0.5.0
+    # via
+    #   gfw-common
+    #   google-cloud-spanner
 tenacity==9.1.4
     # via google-genai
 typing-extensions==4.15.0

@@ -9,9 +9,9 @@ import pytz
 import six
 from apache_beam import Map
 from apache_beam.testing.test_pipeline import TestPipeline as _TestPipeline
+from apache_beam.options.pipeline_options import PipelineOptions
 from apache_beam.testing.util import assert_that
 from pipe_encounters.objects import encounter, record
-from pipe_encounters.options.create_options import CreateOptions
 from pipe_encounters.transforms import compute_adjacency
 from pipe_encounters.transforms.compute_adjacency import ComputeAdjacency
 from pipe_encounters.transforms.compute_encounters import ComputeEncounters
@@ -76,15 +76,7 @@ def TaggedAnnotatedRecord(vessel_id, record, neighbor_count, closest_neighbor):
 
 def get_options(items: list):
     tuple_data = [tuple(x) for x in items]
-    args = [
-        f"--source_table={tuple_data}",
-        "--raw_table=test",
-        "--start_date=2011-01-01",
-        "--end_date=2011-01-01",
-        "--max_encounter_dist_km=0.5",
-        "--min_encounter_time_minutes=120",
-    ]
-    return tuple_data, CreateOptions(args)
+    return tuple_data, PipelineOptions()
 
 
 @pytest.mark.filterwarnings("ignore:Using fallback coder:UserWarning")
