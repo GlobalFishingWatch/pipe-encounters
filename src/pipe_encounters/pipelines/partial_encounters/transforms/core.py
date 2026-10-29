@@ -47,8 +47,8 @@ class DetectPartialEncounters(PTransform):
     Args:
         start_date:
             First date of the range, inclusive.
-        last_date:
-            Last date of the range, inclusive. Pieces are kept if their end date is in range.
+        end_date:
+            Date the range ends at, exclusive. Pieces are kept if their end date is in range.
         max_encounter_dist_km:
             Maximum distance (km) between two vessels to be in an encounter.
         min_encounter_time_minutes:
@@ -64,7 +64,7 @@ class DetectPartialEncounters(PTransform):
     def __init__(
         self,
         start_date: datetime.date,
-        last_date: datetime.date,
+        end_date: datetime.date,
         max_encounter_dist_km: float,
         min_encounter_time_minutes: float,
         max_gap_seconds: int,
@@ -73,7 +73,7 @@ class DetectPartialEncounters(PTransform):
     ):
         super().__init__()
         self.start_date = start_date
-        self.last_date = last_date
+        self.end_date = end_date
         self.max_encounter_dist_km = max_encounter_dist_km
         self.min_encounter_time_minutes = min_encounter_time_minutes
         self.max_gap_seconds = max_gap_seconds
@@ -81,7 +81,7 @@ class DetectPartialEncounters(PTransform):
         self.schema = schema
 
     def expand(self, positions):
-        start_date, last_date = self.start_date, self.last_date
+        start_date, end_date = self.start_date, self.end_date
         return (
             positions
             | Record.FromDict()
@@ -95,7 +95,7 @@ class DetectPartialEncounters(PTransform):
                 max_km_for_encounter=self.max_encounter_dist_km,
                 min_minutes_for_encounter=self.min_encounter_time_minutes,
             )
-            | Filter(lambda x: start_date <= x.end_time.date() <= last_date)
+            | Filter(lambda x: start_date <= x.end_time.date() < end_date)
             | RawEncounter.ToDict()
             | AddRawEncounterId()
             | Map(lambda x: TimestampedValue(x, x["end_time"]))

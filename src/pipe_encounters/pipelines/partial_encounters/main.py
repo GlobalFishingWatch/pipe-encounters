@@ -1,7 +1,5 @@
 """Partial-encounters pipeline: detects the pieces of vessel encounters."""
 
-import datetime
-
 from typing import Any, Callable
 
 import apache_beam as beam
@@ -99,9 +97,6 @@ def run(
     if bq_client_factory is None:
         bq_client_factory = BigQueryHelper.get_client_factory(mocked=config.mock_bq_clients)
 
-    # The end date is exclusive; the pieces are kept by the last day the range includes.
-    last_date = config.end_date - datetime.timedelta(days=1)
-
     table_config = PartialEncountersTableConfig(
         table_id=config.bq_out_partial_encounters,
         description=PartialEncountersTableDescription(
@@ -131,7 +126,7 @@ def run(
         ],
         core=DetectPartialEncounters(
             start_date=config.start_date,
-            last_date=last_date,
+            end_date=config.end_date,
             max_encounter_dist_km=config.max_encounter_dist_km,
             min_encounter_time_minutes=config.min_encounter_time_minutes,
             max_gap_seconds=config.max_gap_seconds,
