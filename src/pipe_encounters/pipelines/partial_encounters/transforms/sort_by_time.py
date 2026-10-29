@@ -1,8 +1,12 @@
+"""Sorting and deduplication of records by time."""
+
 import math
 
 from collections import defaultdict
+from collections.abc import Iterable
+from typing import Any
 
-from apache_beam import Map, PTransform
+from apache_beam import Map, PCollection, PTransform
 
 from pipe_encounters.core.record import Record
 
@@ -11,7 +15,8 @@ from pipe_encounters.core.record import Record
 very_slow = 0.35
 
 
-def median(iterable):
+def median(iterable: Iterable[float]) -> float | None:
+    """Return the median of the values, or None if there are none."""
     seq = sorted(iterable)
     if not seq:
         return None
@@ -22,7 +27,12 @@ def median(iterable):
 
 
 class SortByTime(PTransform):
-    def sort_and_uniquify_by_time(self, item):
+    """Sorts the records of each vessel by time, keeping one record per timestamp."""
+
+    def sort_and_uniquify_by_time(
+        self, item: tuple[str, Iterable[Record]]
+    ) -> tuple[str, list[Record]]:
+        """Merge the records sharing a timestamp and sort them by time."""
         key, records = item
         time_map = defaultdict(list)
 
@@ -64,5 +74,6 @@ class SortByTime(PTransform):
             sorted_records.append(rcd)
         return key, sorted_records
 
-    def expand(self, xs):
-        return xs | Map(self.sort_and_uniquify_by_time)
+    def expand(self, xs: PCollection) -> PCollection:
+        """Sort and deduplicate the records of each vessel by time."""
+        return xs | Map(self.sort_and_uniquify_by_time).with_output_types(Any)

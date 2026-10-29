@@ -1,20 +1,27 @@
+"""Resampling of records onto a constant time grid."""
+
 import datetime as dtime
 import math
 
-from apache_beam import FlatMap, PTransform
+from collections.abc import Callable, Iterator
+from typing import Any
+
+from apache_beam import FlatMap, PCollection, PTransform
 from more_itertools import peekable
 
+from pipe_encounters.core.record import Record
 from pipe_encounters.core.resampled_record import ResampledRecord
 from pipe_encounters.pipelines.partial_encounters.transforms.group_by_id import GroupByIdAndDate
 from pipe_encounters.pipelines.partial_encounters.transforms.sort_by_time import SortByTime
 
 
-def timestamp_as_datetime(ts):
+def timestamp_as_datetime(ts: float) -> dtime.datetime:
+    """Return the UTC datetime of a timestamp in seconds from the Unix epoch."""
     return dtime.datetime.fromtimestamp(ts, tz=dtime.timezone.utc)
 
 
 class Resample(PTransform):
-    """Resample Records onto a constant grid
+    """Resample Records onto a constant grid.
 
     Parameters
     ----------
@@ -32,20 +39,33 @@ class Resample(PTransform):
 
     epoch = dtime.datetime.fromtimestamp(0, tz=dtime.timezone.utc)
 
-    def __init__(self, increment_s, max_gap_s, extrapolate=True, inclusive=False):
+    def __init__(
+        self,
+        increment_s: float,
+        max_gap_s: float,
+        extrapolate: bool = True,
+        inclusive: bool = False,
+    ) -> None:
+        """Initialize the transform."""
         self.increment_s = increment_s
         self.max_gap_s = max_gap_s
         self.extrapolate = extrapolate
         self.inclusive = inclusive
 
-    def dt_to_s(self, timestamp):
+    def dt_to_s(self, timestamp: dtime.datetime) -> float:
+        """Return the seconds from the Unix epoch of a datetime."""
         return (timestamp - self.epoch).total_seconds()
 
-    def round_to_increment(self, timestamp, rounder):
+    def round_to_increment(
+        self, timestamp: dtime.datetime, rounder: Callable[[float], int]
+    ) -> float:
+        """Round the timestamp to a multiple of the increment, in seconds."""
         return rounder(self.dt_to_s(timestamp) / self.increment_s) * self.increment_s
 
-    def _interpolate(self, records, begin_time, end_time):
-        """Interpolate records onto a grid between beg and end times inclusive
+    def _interpolate(
+        self, records: list[Record], begin_time: float, end_time: float
+    ) -> Iterator[ResampledRecord]:
+        """Interpolate records onto a grid between beg and end times inclusive.
 
         Parameters
         ----------
@@ -99,8 +119,10 @@ class Resample(PTransform):
 
                 interp_time += self.increment_s
 
-    def _extrapolate(self, record, beg_time, end_time):
-        """Extrapolate a single record onto a grid between beg and end times inclusive
+    def _extrapolate(
+        self, record: Record, beg_time: float, end_time: float
+    ) -> Iterator[ResampledRecord]:
+        """Extrapolate a single record onto a grid between beg and end times inclusive.
 
         Parameters
         ----------
@@ -137,8 +159,10 @@ class Resample(PTransform):
 
             interp_time += self.increment_s
 
-    def resample_records(self, records):
-        """Parameters
+    def resample_records(self, records: list[Record]) -> Iterator[ResampledRecord]:
+        """Resample the records of one vessel and day onto the grid.
+
+        Parameters
         ----------
         records: list of records that has been sorted by time and uniquified
 
@@ -173,11 +197,13 @@ class Resample(PTransform):
             for rcd in self._extrapolate(records[-1], end_interp + self.increment_s, end_extrap):
                 yield rcd
 
-    def resample(self, item):
-        key, records = item
+    def resample(self, item: tuple[str, list[Record]]) -> Iterator[ResampledRecord]:
+        """Resample the records of one vessel and day onto the grid."""
+        _key, records = item
         yield from self.resample_records(records)
 
-    def expand(self, xs):
+    def expand(self, xs: PCollection) -> PCollection:
+        """Resample the records of each vessel and day onto the grid."""
         return (
             xs
             # This is slightly less accurate than just by id,
@@ -185,5 +211,5 @@ class Resample(PTransform):
             # across daily and longer runs and protects against hot keys on long runs.
             | GroupByIdAndDate()
             | SortByTime()
-            | FlatMap(self.resample)
+            | FlatMap(self.resample).with_output_types(Any)
         )

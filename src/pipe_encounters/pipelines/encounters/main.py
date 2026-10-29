@@ -34,9 +34,9 @@ def partial_encounters_query(config: EncountersConfig) -> PartialEncountersQuery
 
 def run(
     config: EncountersConfig,
-    read_from_bigquery_factory: Callable = None,
-    write_to_bigquery_factory: Callable = None,
-    bq_client_factory: Callable = None,
+    read_from_bigquery_factory: Callable | None = None,
+    write_to_bigquery_factory: Callable | None = None,
+    bq_client_factory: Callable | None = None,
     **kwargs: Any,
 ) -> None:
     """Runs the encounters pipeline.

@@ -1,19 +1,23 @@
+"""Tests the positions query of partial-encounters."""
+
 from datetime import date
 
 from pipe_encounters.pipelines.partial_encounters.queries import PositionsQuery
 
 
-def render(**overrides):
-    fields = dict(
-        source_positions="project.dataset.positions",
-        start_date=date(2024, 1, 1),
-        end_date=date(2024, 1, 2),
-    )
+def render(**overrides: object) -> str:
+    """Returns the rendered positions query, on one line, with the fields overridden."""
+    fields = {
+        "source_positions": "project.dataset.positions",
+        "start_date": date(2024, 1, 1),
+        "end_date": date(2024, 1, 2),
+    }
     fields.update(overrides)
     return " ".join(PositionsQuery(**fields).render().split())
 
 
-def test_reads_the_positions_of_the_date_range():
+def test_reads_the_positions_of_the_date_range() -> None:
+    """Checks the query reads the positions of the date range, with their seg_id as id."""
     query = render()
 
     assert "FROM `project.dataset.positions`" in query
@@ -23,5 +27,6 @@ def test_reads_the_positions_of_the_date_range():
     assert "ssvid" not in query
 
 
-def test_limits_the_vessels_to_the_ssvid_filter():
+def test_limits_the_vessels_to_the_ssvid_filter() -> None:
+    """Checks the query is limited to the vessels of the ssvid filter."""
     assert "AND ssvid IN ('123', '456')" in render(ssvid_filter="'123', '456'")

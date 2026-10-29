@@ -1,11 +1,15 @@
+"""Computation of the closest neighbors of each resampled record."""
+
 import bisect
 import math
 
 from collections import defaultdict
+from collections.abc import Iterable, Iterator
+from typing import Any, NamedTuple
 
 import s2sphere
 
-from apache_beam import FlatMap, GroupByKey, Map, PTransform
+from apache_beam import FlatMap, GroupByKey, Map, PCollection, PTransform
 
 from pipe_encounters.core.annotated_record import AnnotatedRecord
 
@@ -18,7 +22,8 @@ APPROX_ENCOUNTERS_S2_SIZE_KM = 2.0
 EARTH_RADIUS_KM = 6371
 
 
-def compute_distance(rcd1, rcd2):
+def compute_distance(rcd1: NamedTuple, rcd2: NamedTuple) -> float:
+    """Return the great-circle distance in km between two records."""
     h = (
         math.sin(0.5 * math.radians(rcd2.lat - rcd1.lat)) ** 2
         + math.cos(math.radians(rcd1.lat))
@@ -29,7 +34,8 @@ def compute_distance(rcd1, rcd2):
     return 2 * EARTH_RADIUS_KM * math.asin(math.sqrt(h))
 
 
-def S2CellId(lat, lon):
+def S2CellId(lat: float, lon: float) -> s2sphere.CellId:
+    """Return the S2 cell at the encounters scale that contains a position."""
     ll = s2sphere.LatLng.from_degrees(lat, lon)
     cellid = s2sphere.CellId.from_lat_lng(ll)
     cellid = cellid.parent(ENCOUNTERS_S2_SCALE)
@@ -37,12 +43,18 @@ def S2CellId(lat, lon):
 
 
 class ComputeAdjacency(PTransform):
-    def __init__(self, max_adjacency_distance_km, max_tracked_distances=100):
+    """Annotates each record with its closest neighbors within a distance."""
+
+    def __init__(self, max_adjacency_distance_km: float, max_tracked_distances: int = 100) -> None:
+        """Initialize the transform."""
         self.max_adjacency_distance_km = max_adjacency_distance_km
         self.max_tracked_distances = max_tracked_distances
         assert max_adjacency_distance_km < 2 * APPROX_ENCOUNTERS_S2_SIZE_KM
 
-    def compute_distances(self, records):
+    def compute_distances(
+        self, records: Iterable[NamedTuple]
+    ) -> Iterator[tuple[NamedTuple, list[NamedTuple], list[float]]]:
+        """Yield each record with its closest neighbors and their distances."""
         # Sort records by ID to ensure stability
         records = sorted(records, key=lambda x: x.id)
         # Build up a list of all plausible neighbors using S2ids.
@@ -81,20 +93,25 @@ class ComputeAdjacency(PTransform):
                         closest_nbrs = closest_nbrs[: self.max_tracked_distances]
             yield (rcd1, closest_nbrs, closest_dists)
 
-    def annotate_adjacency(self, resampled_item):
-        time, records = resampled_item
+    def annotate_adjacency(
+        self, resampled_item: tuple[float, Iterable[NamedTuple]]
+    ) -> Iterator[AnnotatedRecord]:
+        """Yield the records of a time bucket as annotated records."""
+        _, records = resampled_item
         for rcd1, neighbors, distances in self.compute_distances(records):
             yield AnnotatedRecord(
                 closest_neighbors=neighbors, closest_distances=distances, **rcd1._asdict()
             )
 
-    def tag_with_time(self, item):
+    def tag_with_time(self, item: NamedTuple) -> tuple[float, NamedTuple]:
+        """Key the record by its timestamp in seconds."""
         return (item.timestamp.timestamp(), item)
 
-    def expand(self, xs):
+    def expand(self, xs: PCollection) -> PCollection:
+        """Annotate the records of each time bucket with their closest neighbors."""
         return (
             xs
-            | Map(self.tag_with_time)
+            | Map(self.tag_with_time).with_output_types(Any)
             | "Group by time" >> GroupByKey()
-            | FlatMap(self.annotate_adjacency)
+            | FlatMap(self.annotate_adjacency).with_output_types(Any)
         )

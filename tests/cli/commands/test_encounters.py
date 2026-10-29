@@ -1,8 +1,14 @@
+"""Tests for the encounters CLI command."""
+
 import argparse
 
 from datetime import date
+from pathlib import Path
+from unittest.mock import MagicMock
 
 import pytest
+
+from pytest_mock import MockerFixture
 
 from gfw.common.config import PipelineConfigError
 from pipe_encounters.cli import main
@@ -29,11 +35,13 @@ BASE_ARGS = [
 
 
 @pytest.fixture
-def run(mocker):
+def run(mocker: MockerFixture) -> MagicMock:
+    """Mocks the pipeline run that the CLI calls."""
     return mocker.patch("pipe_encounters.cli.commands.encounters.main.run")
 
 
-def test_cli_executes_run_with_the_config(run):
+def test_cli_executes_run_with_the_config(run: MagicMock) -> None:
+    """Checks that the CLI builds the config and passes it to run."""
     main.run(BASE_ARGS)
 
     config = run.call_args.args[0]
@@ -51,7 +59,8 @@ def test_cli_executes_run_with_the_config(run):
     assert config.labels == {"environment": "test"}
 
 
-def test_cli_requires_the_output_table(run):
+def test_cli_requires_the_output_table(run: MagicMock) -> None:
+    """Checks that the CLI rejects a missing output table."""
     output = ("--bq-out-encounters", "project.dataset.encounters")
     args = [a for a in BASE_ARGS if a not in output]
 
@@ -63,7 +72,10 @@ class StopAfterPipeline(Exception):
     """Stops the run once the Beam pipeline is built, before reading or writing anything."""
 
 
-def test_config_file_beam_options_reach_the_pipeline(mocker, tmp_path):
+def test_config_file_beam_options_reach_the_pipeline(
+    mocker: MockerFixture, tmp_path: Path
+) -> None:
+    """Checks that Beam options from the config file reach the pipeline."""
     pipeline = mocker.patch(
         "pipe_encounters.pipelines.encounters.main.Pipeline", side_effect=StopAfterPipeline
     )
@@ -80,7 +92,8 @@ def test_config_file_beam_options_reach_the_pipeline(mocker, tmp_path):
     assert kwargs["max_num_workers"] == 50
 
 
-def test_cli_rejects_an_empty_date_range(run):
+def test_cli_rejects_an_empty_date_range(run: MagicMock) -> None:
+    """Checks that the CLI rejects an empty date range."""
     args = [a.replace("2024-01-08", "2017-01-01") for a in BASE_ARGS]
 
     with pytest.raises(PipelineConfigError, match="end_date"):

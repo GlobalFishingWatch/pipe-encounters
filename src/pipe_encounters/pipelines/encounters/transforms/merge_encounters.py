@@ -1,13 +1,17 @@
+"""Merges the raw encounters between the same two vessels into encounters."""
+
 import datetime
 import math
 
+from collections.abc import Iterable, Iterator
 from statistics import median
+from typing import Any
 
 import apache_beam as beam
 
-from apache_beam import FlatMap, GroupByKey, Map, PTransform
+from apache_beam import FlatMap, GroupByKey, Map, PCollection, PTransform
 
-from pipe_encounters.core.encounter import Encounter
+from pipe_encounters.core.encounter import Encounter, RawEncounter
 from pipe_encounters.encoding import to_text
 
 
@@ -18,10 +22,27 @@ T = beam.typehints.TypeVariable("T")
 
 
 class MergeEncounters(PTransform):
-    def __init__(self, min_hours_between_encounters):
+    """Groups raw encounters by vessel pair and merges those close in time."""
+
+    def __init__(self, min_hours_between_encounters: float) -> None:
+        """Initialize the transform.
+
+        Args:
+            min_hours_between_encounters: Encounters less than these hours apart are merged.
+        """
         self.min_hours_between_encounters = min_hours_between_encounters
 
-    def key_by_ordered_id(self, encounter):
+    def key_by_ordered_id(
+        self, encounter: RawEncounter
+    ) -> tuple[tuple[bytes, bytes], RawEncounter]:
+        """Keys an encounter by its two vessel ids, in sorted order.
+
+        Args:
+            encounter: Raw encounter with vessel segment id pairs.
+
+        Returns:
+            The ordered vessel id pair and the encounter.
+        """
         # Ids are vessel_id, seg_id pairs
         id_1, _ = encounter.vessel_1_seg_id
         id_2, _ = encounter.vessel_2_seg_id
@@ -30,7 +51,19 @@ class MergeEncounters(PTransform):
         else:
             return (id_2, id_1), encounter
 
-    def encounter_from_records(self, id_1, id_2, records):
+    def encounter_from_records(
+        self, id_1: bytes, id_2: bytes, records: list[tuple[RawEncounter, int, int]]
+    ) -> Encounter:
+        """Builds one encounter from the merged records of a vessel pair.
+
+        Args:
+            id_1: Id of the first vessel.
+            id_2: Id of the second vessel.
+            records: Tuples of raw encounter, point count of vessel 1 and of vessel 2.
+
+        Returns:
+            The merged encounter.
+        """
         total_seconds = max(
             sum((enc.end_time - enc.start_time).total_seconds() for (enc, p1, p2) in records), 1
         )
@@ -76,15 +109,21 @@ class MergeEncounters(PTransform):
             start_lon=start_enc.start_lon,
             end_lat=end_enc.end_lat,
             end_lon=end_enc.end_lon,
-            vessel_1_seg_ids=sorted(
-                set([to_text(enc.vessel_1_seg_id) for (enc, p1, p2) in records])
-            ),
-            vessel_2_seg_ids=sorted(
-                set([to_text(enc.vessel_2_seg_id) for (enc, p1, p2) in records])
-            ),
+            vessel_1_seg_ids=sorted({to_text(enc.vessel_1_seg_id) for (enc, p1, p2) in records}),
+            vessel_2_seg_ids=sorted({to_text(enc.vessel_2_seg_id) for (enc, p1, p2) in records}),
         )
 
-    def merge_encounters(self, item):
+    def merge_encounters(
+        self, item: tuple[tuple[bytes, bytes], Iterable[RawEncounter]]
+    ) -> Iterator[Encounter]:
+        """Merges the encounters of one vessel pair that are close in time.
+
+        Args:
+            item: The ordered vessel id pair and its encounters.
+
+        Yields:
+            The merged encounters of the pair.
+        """
         (key_id_1, key_id_2), encounters = item
         encounters = list(encounters)
         encounters.sort(
@@ -94,7 +133,7 @@ class MergeEncounters(PTransform):
         records = None
         for enc in encounters:
             vid1, segid1 = enc.vessel_1_seg_id
-            vid2, segid2 = enc.vessel_2_seg_id
+            _vid2, segid2 = enc.vessel_2_seg_id
             v1_pts = enc.vessel_1_point_count
             v2_pts = enc.vessel_2_point_count
             if vid1 == key_id_2:
@@ -115,12 +154,20 @@ class MergeEncounters(PTransform):
         if records:
             yield self.encounter_from_records(key_id_1, key_id_2, records)
 
-    def expand(self, xs):
+    def expand(self, xs: PCollection) -> PCollection:
+        """Groups the raw encounters by vessel pair and merges each group.
+
+        Args:
+            xs: Collection of raw encounters.
+
+        Returns:
+            Collection of merged encounters.
+        """
         return (
             xs
             | Map(self.key_by_ordered_id).with_output_types(
                 beam.typehints.Tuple[beam.typehints.Tuple[bytes, bytes], T]
             )
             | "Group by Ordered ID" >> GroupByKey()
-            | FlatMap(self.merge_encounters)
+            | FlatMap(self.merge_encounters).with_output_types(Any)
         )

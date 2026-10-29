@@ -1,14 +1,20 @@
+"""Helpers for comparing pipeline outputs in tests."""
+
 import math
 import warnings
+
+from collections.abc import Callable, Iterable
+from typing import Any
 
 from apache_beam.testing.util import BeamAssertException
 
 
-def _approx_equal(expected, actual, fp_abs_tol, fp_rel_tol):
+def _approx_equal(expected: Any, actual: Any, fp_abs_tol: float, fp_rel_tol: float) -> bool:
     try:
         if isinstance(expected, (list, tuple)):
             return len(actual) == len(expected) and all(
-                _approx_equal(a, b, fp_abs_tol, fp_rel_tol) for (a, b) in zip(expected, actual)
+                _approx_equal(a, b, fp_abs_tol, fp_rel_tol)
+                for (a, b) in zip(expected, actual, strict=True)
             )
         if isinstance(expected, dict):
             return sorted(actual.keys()) == sorted(expected.keys()) and all(
@@ -22,7 +28,7 @@ def _approx_equal(expected, actual, fp_abs_tol, fp_rel_tol):
                 <= max(fp_abs_tol, 0.5 * fp_rel_tol * (abs(actual) + abs(expected)))
             )
     except Exception:
-        warnings.warn("comparison failure in approx_equal_to")
+        warnings.warn("comparison failure in approx_equal_to", stacklevel=2)
         return False
     return actual == expected
 
@@ -31,8 +37,10 @@ def _approx_equal(expected, actual, fp_abs_tol, fp_rel_tol):
 # by using Beam's `equal_to` with a custom `equal_fn`
 
 
-def approx_equal_to(expected, fp_abs_tol=1e-8, fp_rel_tol=1e-5):
-    """Predicate for apache_beam.testing.util.assert_that with floating tolerance
+def approx_equal_to(
+    expected: Iterable[Any], fp_abs_tol: float = 1e-8, fp_rel_tol: float = 1e-5
+) -> Callable[[Iterable[Any]], None]:
+    """Predicate for apache_beam.testing.util.assert_that with floating tolerance.
 
     Parameters
     ----------
@@ -49,7 +57,7 @@ def approx_equal_to(expected, fp_abs_tol=1e-8, fp_rel_tol=1e-5):
         Raises BeamAssertException if actual is not approximately equal to expected.
     """
 
-    def _check(actual):
+    def _check(actual: Iterable[Any]) -> None:
         expected_list = list(expected)
         unexpected = []
         for element in actual:

@@ -1,4 +1,8 @@
+"""Tests for the encounters pipeline's main module."""
+
+from collections.abc import Callable
 from datetime import date, datetime, timezone
+from typing import Any
 
 import apache_beam as beam
 
@@ -10,21 +14,23 @@ from pipe_encounters.pipelines.encounters.config import EncountersConfig
 from pipe_encounters.pipelines.encounters.main import partial_encounters_query, run
 
 
-def config(**overrides):
-    fields = dict(
-        bq_in_partial_encounters="project.dataset.raw_encounters",
-        bq_in_segment_info="project.dataset.segment_info",
-        bq_in_spatial_measures="project.dataset.spatial_measures",
-        bq_out_encounters="project.dataset.encounters",
-        start_date=date(2017, 1, 1),
-        end_date=date(2024, 1, 2),
-        labels={"environment": "test"},
-    )
+def config(**overrides: Any) -> EncountersConfig:
+    """Builds an encounters config with test defaults, with overrides applied."""
+    fields = {
+        "bq_in_partial_encounters": "project.dataset.raw_encounters",
+        "bq_in_segment_info": "project.dataset.segment_info",
+        "bq_in_spatial_measures": "project.dataset.spatial_measures",
+        "bq_out_encounters": "project.dataset.encounters",
+        "start_date": date(2017, 1, 1),
+        "end_date": date(2024, 1, 2),
+        "labels": {"environment": "test"},
+    }
     fields.update(overrides)
     return EncountersConfig(**fields)
 
 
-def test_partial_encounters_query():
+def test_partial_encounters_query() -> None:
+    """Checks that the partial encounters query takes its sources and dates from the config."""
     query = partial_encounters_query(config())
 
     assert query.source_partial_encounters == "project.dataset.raw_encounters"
@@ -40,26 +46,28 @@ DAY = datetime(2024, 1, 1, tzinfo=timezone.utc).timestamp()
 HOUR = 3600
 
 
-def partial_encounter(seg_1, seg_2, start, end, points=6):
+def partial_encounter(
+    seg_1: str, seg_2: str, start: float, end: float, points: int = 6
+) -> dict[str, Any]:
     """A row shaped like PartialEncountersQuery's output. Segment 'A1' is of vessel 'vessel-A'."""
-    return dict(
-        vessel_1_seg_id=seg_1,
-        vessel_2_seg_id=seg_2,
-        vessel_1_id=f"vessel-{seg_1[0]}",
-        vessel_2_id=f"vessel-{seg_2[0]}",
-        start_time=start,
-        end_time=end,
-        mean_latitude=1.0,
-        mean_longitude=2.0,
-        median_distance_km=0.3,
-        median_speed_knots=1.0,
-        vessel_1_point_count=points,
-        vessel_2_point_count=points,
-        start_lat=1.0,
-        start_lon=2.0,
-        end_lat=1.0,
-        end_lon=2.0,
-    )
+    return {
+        "vessel_1_seg_id": seg_1,
+        "vessel_2_seg_id": seg_2,
+        "vessel_1_id": f"vessel-{seg_1[0]}",
+        "vessel_2_id": f"vessel-{seg_2[0]}",
+        "start_time": start,
+        "end_time": end,
+        "mean_latitude": 1.0,
+        "mean_longitude": 2.0,
+        "median_distance_km": 0.3,
+        "median_speed_knots": 1.0,
+        "vessel_1_point_count": points,
+        "vessel_2_point_count": points,
+        "start_lat": 1.0,
+        "start_lon": 2.0,
+        "end_lat": 1.0,
+        "end_lon": 2.0,
+    }
 
 
 # An encounter from 22:00 to 02:00, split at midnight, each piece from both vessels' sides.
@@ -74,16 +82,35 @@ PARTIAL_ENCOUNTERS = [
 class AssertWritten(beam.PTransform):
     """Stands in for WriteToBigQuery: checks the rows to be written, inside the pipeline."""
 
-    def __init__(self, check, **kwargs):
+    def __init__(self, check: Callable[[list[dict[str, Any]]], None], **kwargs: Any) -> None:
+        """Initialize the transform.
+
+        Args:
+            check: Function that checks the list of rows to be written.
+            **kwargs: Ignored, so that it accepts the same arguments as WriteToBigQuery.
+        """
         super().__init__()
         self._check = check
 
-    def expand(self, pcoll):
+    def expand(self, pcoll: beam.PCollection) -> beam.PCollection:
+        """Checks the rows in the collection and passes the collection through.
+
+        Args:
+            pcoll: Collection of rows to be written.
+
+        Returns:
+            The same collection.
+        """
         assert_that(pcoll, self._check)
         return pcoll
 
 
-def check_one_encounter_between_vessels_a_and_b(rows):
+def check_one_encounter_between_vessels_a_and_b(rows: list[dict[str, Any]]) -> None:
+    """Checks that the rows hold one encounter between vessels A and B, with the expected values.
+
+    Args:
+        rows: Rows to be written.
+    """
     assert len(rows) == 1
     row = rows[0]
     assert {f["name"] for f in schemas.get_schema("encounters.json")} == set(row)
@@ -95,14 +122,15 @@ def check_one_encounter_between_vessels_a_and_b(rows):
     assert (row["vessel_1_point_count"], row["vessel_2_point_count"]) == (24, 24)
 
 
-def test_run():
+def test_run() -> None:
+    """Checks that run reads and writes the configured tables and writes one encounter."""
     reads, writes = [], []
 
-    def read_factory(**kwargs):
+    def read_factory(**kwargs: Any) -> FakeReadFromBigQuery:
         reads.append(kwargs)
         return FakeReadFromBigQuery(elements=PARTIAL_ENCOUNTERS, **kwargs)
 
-    def write_factory(**kwargs):
+    def write_factory(**kwargs: Any) -> AssertWritten:
         writes.append(kwargs)
         return AssertWritten(check_one_encounter_between_vessels_a_and_b, **kwargs)
 

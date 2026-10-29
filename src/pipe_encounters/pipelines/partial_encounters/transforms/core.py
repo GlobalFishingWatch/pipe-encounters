@@ -2,7 +2,7 @@
 
 import datetime
 
-from apache_beam import Filter, Map, PTransform
+from apache_beam import Filter, Map, PCollection, PTransform
 from apache_beam.transforms.window import TimestampedValue
 
 from pipe_encounters.core.encounter import RawEncounter
@@ -46,7 +46,8 @@ class DetectPartialEncounters(PTransform):
         min_encounter_time_minutes: float,
         max_gap_seconds: int,
         max_gap_seconds_inclusive: bool,
-    ):
+    ) -> None:
+        """Initialize the transform."""
         super().__init__()
         self.start_date = start_date
         self.end_date = end_date
@@ -55,7 +56,8 @@ class DetectPartialEncounters(PTransform):
         self.max_gap_seconds = max_gap_seconds
         self.max_gap_seconds_inclusive = max_gap_seconds_inclusive
 
-    def expand(self, positions):
+    def expand(self, positions: PCollection) -> PCollection:
+        """Detect the partial encounters of the position rows."""
         start_date, end_date = self.start_date, self.end_date
         return (
             positions
