@@ -5,11 +5,15 @@ transform's expand(), then the transform's own methods.
 """
 
 from collections import defaultdict
+from collections.abc import Iterable
 
+from pipe_encounters.core.encounter import Encounter, RawEncounter
 from pipe_encounters.pipelines.encounters.transforms.merge_encounters import MergeEncounters
 
 
-def merge(raw_encounters, min_hours_between_encounters=24):
+def merge(
+    raw_encounters: Iterable[RawEncounter], min_hours_between_encounters: float = 24
+) -> list[Encounter]:
     """MergeEncounters: group by ordered vessel id pair, then merge each group."""
     transform = MergeEncounters(min_hours_between_encounters=min_hours_between_encounters)
     groups = defaultdict(list)

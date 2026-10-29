@@ -1,22 +1,31 @@
+"""Tests the compute-adjacency transform of partial-encounters."""
+
 import numpy as np
 
 from pipe_encounters.core import record
 from pipe_encounters.encoding import to_bytes
 from pipe_encounters.pipelines.partial_encounters.transforms import compute_adjacency
-from tests.utils import approx_equal_to
 from tests.pipelines.partial_encounters.transforms.steps import adjacency, resample
 from tests.pipelines.partial_encounters.transforms.test_resample import ResampledRecord
 from tests.series_data import simple_series_data
+from tests.utils import approx_equal_to
 
 
-def ensure_bytes_id(obj):
+def ensure_bytes_id(obj: record.Record) -> record.Record:
+    """Returns the record with its id as bytes."""
     return obj._replace(id=to_bytes(obj.id))
 
 
 inf = float("inf")
 
 
-def TaggedAnnotatedRecord(vessel_id, record, neighbor_count, closest_neighbor):
+def TaggedAnnotatedRecord(
+    vessel_id: bytes,
+    record: ResampledRecord,
+    neighbor_count: int,
+    closest_neighbor: tuple[bytes, float, tuple[object, ...]] | None,
+) -> compute_adjacency.AnnotatedRecord:
+    """Returns the record of vessel_id, annotated with its closest neighbor, if any."""
     if closest_neighbor is None:
         nbr_dist = inf
     else:
@@ -36,7 +45,8 @@ def TaggedAnnotatedRecord(vessel_id, record, neighbor_count, closest_neighbor):
     )
 
 
-def test_with_resampling():
+def test_with_resampling() -> None:
+    """Checks the resampled records are annotated with their closest neighbors."""
     records = [ensure_bytes_id(record.Record(*x)) for x in simple_series_data]
 
     resampled = resample(records, increment_s=60 * 10, max_gap_s=60 * 70, extrapolate=False)
@@ -45,7 +55,8 @@ def test_with_resampling():
     approx_equal_to(expected(interpolated=True))(results)
 
 
-def expected(interpolated=True):
+def expected(interpolated: bool = True) -> list[compute_adjacency.AnnotatedRecord]:
+    """Returns the annotated records expected from simple_series_data."""
     density = 0.5 if interpolated else 1.0
     return (
         [

@@ -7,7 +7,6 @@ from typing import Any
 from gfw.common.cli import CLI, labels_option
 from gfw.common.cli.formatting import default_formatter
 from gfw.common.logging import LoggerConfig
-
 from pipe_encounters.cli.commands import Encounters, PartialEncounters
 from pipe_encounters.utils.ver import __version__
 

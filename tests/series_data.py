@@ -1,5 +1,10 @@
+"""Series data of vessel positions used by the tests."""
+
 import datetime
+
+from pipe_encounters.core import record
 from tests.pipelines.partial_encounters.transforms.test_resample import Record as Record
+
 
 # def Record(*args, **kwargs):
 #     kwargs['id'] = kwargs['id'].encode('ascii')
@@ -179,9 +184,10 @@ multi_path_3 = [
 multi_series_data = multi_path_1 + multi_path_2 + multi_path_3
 
 
-def text_to_records(vessel_id, text):
+def text_to_records(vessel_id: str, text: str) -> list[record.Record]:
+    """Parses lines of seconds, latitude, longitude and an unused field into records."""
 
-    def line_to_record(x):
+    def line_to_record(x: str) -> record.Record:
         seconds, lat, lon, _ = x.split(",")
         timestamp = datetime.datetime.fromtimestamp(float(seconds), tz=datetime.timezone.utc)
         return Record(timestamp, float(lat), float(lon), id=vessel_id)

@@ -1,6 +1,13 @@
+"""Tests for the encounter id transforms."""
+
 import datetime as dt
-from pipe_encounters.transforms import add_id
+
+from typing import Any
+
 import pytest
+
+from pipe_encounters.transforms import add_id
+
 
 epoch = dt.datetime(1970, 1, 1)
 
@@ -21,7 +28,8 @@ epoch = dt.datetime(1970, 1, 1)
         ),
     ],
 )
-def test_add_id(test_input, expected):
+def test_add_id(test_input: dict[str, Any], expected: str) -> None:
+    """Checks that AddEncounterId sets the expected encounter_id."""
     adder = add_id.AddEncounterId()
     encounter_id = adder.add_id(test_input)["encounter_id"]
     assert encounter_id == expected

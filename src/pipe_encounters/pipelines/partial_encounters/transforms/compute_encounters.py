@@ -1,11 +1,15 @@
+"""Computation of the encounters between vessels from their adjacency runs."""
+
 import datetime
 import itertools as it
 import math
 
 from collections import defaultdict
+from collections.abc import Iterable, Iterator
 from statistics import mean, median
+from typing import Any, NamedTuple
 
-from apache_beam import FlatMap, GroupByKey, Map, PTransform
+from apache_beam import FlatMap, GroupByKey, Map, PCollection, PTransform
 
 from pipe_encounters.core.encounter import RawEncounter
 from pipe_encounters.pipelines.partial_encounters.transforms.compute_adjacency import (
@@ -16,19 +20,24 @@ from pipe_encounters.pipelines.partial_encounters.transforms.compute_adjacency i
 MPS_TO_KNOTS = 1.94384
 
 
-def implied_speed_mps(rcd1, rcd2):
+def implied_speed_mps(rcd1: NamedTuple, rcd2: NamedTuple) -> float:
+    """Return the speed in m/s implied by moving from rcd1 to rcd2."""
     distance = 1000 * compute_distance_km(rcd1, rcd2)
     duration = (rcd2.timestamp - rcd1.timestamp).total_seconds()  # s
     return distance / duration
 
 
 class ComputeEncounters(PTransform):
+    """Computes the encounters of each vessel from its annotated records."""
 
-    def __init__(self, max_km_for_encounter, min_minutes_for_encounter):
+    def __init__(self, max_km_for_encounter: float, min_minutes_for_encounter: float) -> None:
+        """Initialize the transform."""
         self.min_minutes_for_encounter = min_minutes_for_encounter
         self.max_km_for_encounter = max_km_for_encounter
 
-    def _try_to_create_encounter(self, adjacency_run):
+    def _try_to_create_encounter(
+        self, adjacency_run: list[tuple[NamedTuple, NamedTuple, float]]
+    ) -> Iterator[RawEncounter]:
         if len(adjacency_run) < 2:
             return
 
@@ -51,12 +60,8 @@ class ComputeEncounters(PTransform):
         mean_lon = math.degrees(math.atan2(sin_lon, cos_lon))
         median_speed_knots = median(implied_speeds) * MPS_TO_KNOTS
 
-        vessel_1_points = int(
-            round(sum(rcd1.point_density for (rcd1, rcd2, dist) in adjacency_run))
-        )
-        vessel_2_points = int(
-            round(sum(rcd2.point_density for (rcd1, rcd2, dist) in adjacency_run))
-        )
+        vessel_1_points = round(sum(rcd1.point_density for (rcd1, rcd2, dist) in adjacency_run))
+        vessel_2_points = round(sum(rcd2.point_density for (rcd1, rcd2, dist) in adjacency_run))
 
         rcd1, rcd2, _ = adjacency_run[0]
 
@@ -77,7 +82,11 @@ class ComputeEncounters(PTransform):
             end_lon=adjacency_run[-1][0].lon,
         )
 
-    def _create_valid_encounters(self, adjacency_runs, active_ids):
+    def _create_valid_encounters(
+        self,
+        adjacency_runs: dict[str, list[tuple[NamedTuple, NamedTuple, float]]],
+        active_ids: set[str],
+    ) -> Iterator[RawEncounter]:
         removal_list = []
         for k, v in adjacency_runs.items():
             if k not in active_ids:
@@ -86,8 +95,8 @@ class ComputeEncounters(PTransform):
         for k in removal_list:
             del adjacency_runs[k]
 
-    def compute_encounters(self, item):
-        """Create encounters for one vessel
+    def compute_encounters(self, item: tuple[str, list[NamedTuple]]) -> Iterator[RawEncounter]:
+        """Create encounters for one vessel.
 
         Parameters
         ==========
@@ -98,7 +107,7 @@ class ComputeEncounters(PTransform):
         ======
         Encounter
         """
-        key, records = item
+        _key, records = item
         adjacency_runs = defaultdict(list)
 
         for rcd1 in records:
@@ -111,20 +120,23 @@ class ComputeEncounters(PTransform):
             yield from self._create_valid_encounters(adjacency_runs, active_ids)
         yield from self._create_valid_encounters(adjacency_runs, set())
 
-    def tag_with_id(self, item):
+    def tag_with_id(self, item: NamedTuple) -> tuple[str, NamedTuple]:
+        """Key the record by its id and date."""
         return (f"{item.id}_{item.timestamp.date()}", item)
 
-    def sort_by_time(self, item):
+    def sort_by_time(self, item: tuple[str, Iterable[NamedTuple]]) -> tuple[str, list[NamedTuple]]:
+        """Sort the records of a group by timestamp."""
         key, value = item
         value = list(value)
         value.sort(key=lambda x: x.timestamp)
         return key, value
 
-    def expand(self, xs):
+    def expand(self, xs: PCollection) -> PCollection:
+        """Compute the encounters of each vessel."""
         return (
             xs
-            | Map(self.tag_with_id)
+            | Map(self.tag_with_id).with_output_types(Any)
             | "Group by id" >> GroupByKey()
-            | Map(self.sort_by_time)
-            | FlatMap(self.compute_encounters)
+            | Map(self.sort_by_time).with_output_types(Any)
+            | FlatMap(self.compute_encounters).with_output_types(Any)
         )

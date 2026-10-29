@@ -1,8 +1,8 @@
+"""Tests the compute-encounters transform of partial-encounters."""
+
 import datetime
 
-
 from pipe_encounters.core import encounter
-from tests.utils import approx_equal_to
 from tests.pipelines.partial_encounters.transforms.steps import detect, records
 from tests.series_data import (
     dateline_series_data,
@@ -11,43 +11,48 @@ from tests.series_data import (
     real_series_data,
     simple_series_data,
 )
+from tests.utils import approx_equal_to
 
 
 inf = float("inf")
 
 
-def ts(x):
+def ts(x: str) -> datetime.datetime:
+    """Returns the UTC datetime of a timestamp like 2011-01-01T16:10:00Z."""
     dt = datetime.datetime.strptime(x, "%Y-%m-%dT%H:%M:%SZ")
     return dt.replace(tzinfo=datetime.timezone.utc)
 
 
-def test_simple_encounters():
+def test_simple_encounters() -> None:
+    """Checks the simple series yields the expected encounters."""
     results = detect(records(simple_series_data))
 
     approx_equal_to(simple_expected())(results)
 
 
-def test_multi_encounters():
+def test_multi_encounters() -> None:
+    """Checks the multi series yields the expected encounters."""
     results = detect(records(multi_series_data))
 
     approx_equal_to(multi_expected())(results)
 
 
-def test_nerfed_multi_encounters():
-    """If we reduce the number of tracked distances we shouldn't get all of the encounters"""
+def test_nerfed_multi_encounters() -> None:
+    """If we reduce the number of tracked distances we shouldn't get all of the encounters."""
     results = detect(records(multi_series_data), max_tracked_distances=1)
 
     approx_equal_to(nerfed_multi_expected())(results)
 
 
-def test_dateline_encounters():
+def test_dateline_encounters() -> None:
+    """Checks encounters are found across the antimeridian, at longitude 180."""
     results = detect(records(dateline_series_data))
 
     approx_equal_to(dateline_expected())(results)
 
 
-def test_fastsep_encounters():
-    """Make sure false encounters aren't generated when vessels move rapidly
+def test_fastsep_encounters() -> None:
+    """Make sure false encounters aren't generated when vessels move rapidly.
 
     There's a possible corner case where vessels that move apart rapidly are invisible
     while they are far apart. If they then move back together quickly a false, or overly
@@ -59,19 +64,22 @@ def test_fastsep_encounters():
     approx_equal_to([])(results)
 
 
-def test_real_data():
+def test_real_data() -> None:
+    """Checks the real series yields the expected encounters."""
     results = detect(records(real_series_data))
 
     approx_equal_to(real_expected())(results)
 
 
-def test_message_generation():
+def test_message_generation() -> None:
+    """Checks the encounters of the real series convert to the expected messages."""
     results = [encounter.Encounter.ToDict().to_dict(r) for r in detect(records(real_series_data))]
 
     approx_equal_to(messages_expected())(results)
 
 
-def simple_expected():
+def simple_expected() -> list[encounter.RawEncounter]:
+    """Returns the encounters expected from simple_series_data."""
     return [
         encounter.RawEncounter(
             b"1",
@@ -108,7 +116,8 @@ def simple_expected():
     ]
 
 
-def multi_expected():
+def multi_expected() -> list[encounter.RawEncounter]:
+    """Returns the encounters expected from multi_series_data."""
     return [
         encounter.RawEncounter(
             vessel_1_seg_id=b"1",
@@ -209,7 +218,8 @@ def multi_expected():
     ]
 
 
-def nerfed_multi_expected():
+def nerfed_multi_expected() -> list[encounter.RawEncounter]:
+    """Returns the encounters expected from multi_series_data with one tracked distance."""
     return [
         encounter.RawEncounter(
             vessel_1_seg_id=b"1",
@@ -278,7 +288,8 @@ def nerfed_multi_expected():
     ]
 
 
-def dateline_expected():
+def dateline_expected() -> list[encounter.RawEncounter]:
+    """Returns the encounters expected from dateline_series_data."""
     return [
         encounter.RawEncounter(
             b"1",
@@ -315,7 +326,8 @@ def dateline_expected():
     ]
 
 
-def real_expected():
+def real_expected() -> list[encounter.RawEncounter]:
+    """Returns the encounters expected from real_series_data."""
     return [
         encounter.RawEncounter(
             b"441910000",
@@ -352,42 +364,39 @@ def real_expected():
     ]
 
 
-def messages_expected():
+def messages_expected() -> list[dict[str, object]]:
+    """Returns the messages expected from the real series' encounters."""
     return [
-        dict(
-            [
-                ("start_time", 1426750800.0),
-                ("end_time", 1426795800.0),
-                ("mean_latitude", -27.47909444042379),
-                ("mean_longitude", 38.533749458969304),
-                ("median_distance_km", 0.028845166034633843),
-                ("median_speed_knots", 0.20569554161530468),
-                ("vessel_1_point_count", 7),
-                ("vessel_2_point_count", 6),
-                ("vessel_1_seg_id", b"441910000"),
-                ("vessel_2_seg_id", b"563418000"),
-                ("start_lat", -27.48458079902857),
-                ("start_lon", 38.5362468641449),
-                ("end_lat", -27.464933395399996),
-                ("end_lon", 38.52257468481818),
-            ]
-        ),
-        dict(
-            [
-                ("start_time", 1426750800.0),
-                ("end_time", 1426759800.0),
-                ("mean_latitude", -27.480823491781422),
-                ("mean_longitude", 38.53562707753488),
-                ("median_distance_km", 0.030350584066300215),
-                ("median_speed_knots", 0.17049202182476167),
-                ("vessel_1_point_count", 4),
-                ("vessel_2_point_count", 5),
-                ("vessel_1_seg_id", b"563418000"),
-                ("vessel_2_seg_id", b"441910000"),
-                ("start_lat", -27.484518051171428),
-                ("start_lon", 38.53651973177143),
-                ("end_lat", -27.475459163642533),
-                ("end_lon", 38.53207037113999),
-            ]
-        ),
+        {
+            "start_time": 1426750800.0,
+            "end_time": 1426795800.0,
+            "mean_latitude": -27.47909444042379,
+            "mean_longitude": 38.533749458969304,
+            "median_distance_km": 0.028845166034633843,
+            "median_speed_knots": 0.20569554161530468,
+            "vessel_1_point_count": 7,
+            "vessel_2_point_count": 6,
+            "vessel_1_seg_id": b"441910000",
+            "vessel_2_seg_id": b"563418000",
+            "start_lat": -27.48458079902857,
+            "start_lon": 38.5362468641449,
+            "end_lat": -27.464933395399996,
+            "end_lon": 38.52257468481818,
+        },
+        {
+            "start_time": 1426750800.0,
+            "end_time": 1426759800.0,
+            "mean_latitude": -27.480823491781422,
+            "mean_longitude": 38.53562707753488,
+            "median_distance_km": 0.030350584066300215,
+            "median_speed_knots": 0.17049202182476167,
+            "vessel_1_point_count": 4,
+            "vessel_2_point_count": 5,
+            "vessel_1_seg_id": b"563418000",
+            "vessel_2_seg_id": b"441910000",
+            "start_lat": -27.484518051171428,
+            "start_lon": 38.53651973177143,
+            "end_lat": -27.475459163642533,
+            "end_lon": 38.53207037113999,
+        },
     ]

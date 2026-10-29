@@ -1,4 +1,7 @@
+"""RawEncounter and Encounter namedtuples and their coders."""
+
 from collections import namedtuple
+from typing import ClassVar
 
 from .namedtuples import NamedtupleCoder
 
@@ -25,8 +28,10 @@ RawEncounter = namedtuple(
 
 
 class RawEncounterCoder(NamedtupleCoder):
+    """Coder for RawEncounter."""
+
     target = RawEncounter
-    time_fields = ["start_time", "end_time"]
+    time_fields: ClassVar[list[str]] = ["start_time", "end_time"]
 
 
 RawEncounterCoder.register()
@@ -56,8 +61,10 @@ Encounter = namedtuple(
 
 
 class EncounterCoder(NamedtupleCoder):
+    """Coder for Encounter."""
+
     target = Encounter
-    time_fields = ["start_time", "end_time"]
+    time_fields: ClassVar[list[str]] = ["start_time", "end_time"]
 
 
 EncounterCoder.register()

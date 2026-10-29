@@ -1,12 +1,17 @@
+"""Tests for merging the encounters of the encounters pipeline."""
+
+from typing import Any, NamedTuple
+
 from pipe_encounters.core import encounter
 from pipe_encounters.encoding import to_bytes
-from tests.utils import approx_equal_to
 from tests.pipelines.encounters.transforms.steps import merge
 from tests.pipelines.partial_encounters.transforms.steps import detect, records
 from tests.series_data import dateline_series_data, real_series_data
+from tests.utils import approx_equal_to
 
 
-def add_fake_vessel_id(obj):
+def add_fake_vessel_id(obj: NamedTuple) -> encounter.RawEncounter:
+    """Replaces each vessel segment id with a (vessel id, segment id) pair of bytes."""
     obj = obj._asdict()
     for v in [1, 2]:
         obj[f"vessel_{v}_seg_id"] = (
@@ -16,21 +21,24 @@ def add_fake_vessel_id(obj):
     return encounter.RawEncounter(**obj)
 
 
-def test_merge_messages():
+def test_merge_messages() -> None:
+    """Checks that the encounters between two vessels are merged as expected."""
     raw = [add_fake_vessel_id(r) for r in detect(records(real_series_data))]
     results = [encounter.Encounter.ToDict().to_dict(e) for e in merge(raw)]
 
     approx_equal_to(merged_expected())(results)
 
 
-def test_merge_dateline():
+def test_merge_dateline() -> None:
+    """Checks that encounters across the antimeridian are merged as expected."""
     raw = [add_fake_vessel_id(r) for r in detect(records(dateline_series_data))]
     results = [encounter.Encounter.ToDict().to_dict(e) for e in merge(raw)]
 
     approx_equal_to(merged_dateline_expected())(results)
 
 
-def merged_expected():
+def merged_expected() -> list[dict[str, Any]]:
+    """Returns the expected merged encounters of the real series data."""
     return [
         {
             "median_speed_knots": 0.18809378172003316,
@@ -53,7 +61,8 @@ def merged_expected():
     ]
 
 
-def merged_dateline_expected():
+def merged_dateline_expected() -> list[dict[str, Any]]:
+    """Returns the expected merged encounters of the dateline series data."""
     return [
         {
             "vessel_1_id": b"1",

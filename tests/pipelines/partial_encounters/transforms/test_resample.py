@@ -1,9 +1,15 @@
+"""Tests the resample transform of partial-encounters."""
+
 import datetime as dt
+
 from pipe_encounters.core import record
 from pipe_encounters.pipelines.partial_encounters.transforms import resample
 
 
-def Record(timestamp, lat, lon, id=b"0", speed=0.0):
+def Record(
+    timestamp: str | dt.datetime, lat: float, lon: float, id: bytes = b"0", speed: float = 0.0
+) -> record.Record:
+    """Returns a Record at timestamp, in UTC if it's a str."""
     if not isinstance(timestamp, dt.datetime):
         timestamp = dt.datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S %Z").replace(
             tzinfo=dt.timezone.utc
@@ -11,7 +17,15 @@ def Record(timestamp, lat, lon, id=b"0", speed=0.0):
     return record.Record(id=id, timestamp=timestamp, lat=lat, lon=lon, speed=speed, course=45)
 
 
-def ResampledRecord(timestamp, lat, lon, point_density=1.0, id=b"0", speed=0.0):
+def ResampledRecord(
+    timestamp: str | dt.datetime,
+    lat: float,
+    lon: float,
+    point_density: float = 1.0,
+    id: bytes = b"0",
+    speed: float = 0.0,
+) -> resample.ResampledRecord:
+    """Returns a ResampledRecord at timestamp, in UTC if it's a str."""
     if not isinstance(timestamp, dt.datetime):
         timestamp = dt.datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S %Z").replace(
             tzinfo=dt.timezone.utc
@@ -90,12 +104,14 @@ expected = [
 ]
 
 
-def test_resample():
+def test_resample() -> None:
+    """Checks records are resampled every increment_s, interpolating gaps up to max_gap_s."""
     obj = resample.Resample(increment_s=60 * 10, max_gap_s=60 * 60)
     assert list(obj.resample_records(input_records)) == expected
 
 
-def test_resample_interpolates_across_gap_exactly_at_max_gap_s():
+def test_resample_interpolates_across_gap_exactly_at_max_gap_s() -> None:
+    """Checks a gap of exactly max_gap_s is interpolated across when inclusive."""
     # Two records exactly max_gap_s (1 hour) apart: VMS-style polling regularly
     # produces gaps at exactly this boundary, so it must still be interpolated
     # across, not treated the same as a gap longer than max_gap_s.
@@ -118,7 +134,8 @@ def test_resample_interpolates_across_gap_exactly_at_max_gap_s():
     assert list(obj.resample_records(boundary_records)) == expected_boundary
 
 
-def test_resample_excludes_gap_exactly_at_max_gap_s_when_not_inclusive():
+def test_resample_excludes_gap_exactly_at_max_gap_s_when_not_inclusive() -> None:
+    """Checks a gap of exactly max_gap_s is not interpolated across when not inclusive."""
     # inclusive=False restores the legacy strict less-than behavior: a gap of
     # exactly max_gap_s produces no interpolated points.
     boundary_records = [

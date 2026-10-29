@@ -13,7 +13,6 @@ from gfw.common.beam.pipeline.hooks import (
 )
 from gfw.common.beam.transforms import ReadFromBigQuery, WriteToBigQueryWrapper
 from gfw.common.bigquery.helper import BigQueryHelper
-
 from pipe_encounters.pipelines.partial_encounters.config import PartialEncountersConfig
 from pipe_encounters.pipelines.partial_encounters.queries import PositionsQuery
 from pipe_encounters.pipelines.partial_encounters.table_config import (
@@ -46,9 +45,9 @@ def positions_query(config: PartialEncountersConfig) -> PositionsQuery:
 
 def run(
     config: PartialEncountersConfig,
-    read_from_bigquery_factory: Callable = None,
-    write_to_bigquery_factory: Callable = None,
-    bq_client_factory: Callable = None,
+    read_from_bigquery_factory: Callable | None = None,
+    write_to_bigquery_factory: Callable | None = None,
+    bq_client_factory: Callable | None = None,
     **kwargs: Any,
 ) -> None:
     """Runs the partial-encounters pipeline.

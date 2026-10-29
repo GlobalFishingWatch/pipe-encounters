@@ -4,7 +4,6 @@ from types import SimpleNamespace
 from typing import Any
 
 from gfw.common.cli import Command, Option, date_range_options
-
 from pipe_encounters.pipelines.partial_encounters import main
 from pipe_encounters.pipelines.partial_encounters.config import PartialEncountersConfig
 

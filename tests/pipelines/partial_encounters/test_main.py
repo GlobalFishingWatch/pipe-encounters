@@ -1,11 +1,16 @@
+"""Tests the partial-encounters pipeline's main module, run on mocked BigQuery."""
+
+from collections.abc import Callable
 from datetime import date, datetime, timezone
+from pathlib import Path
 
 import apache_beam as beam
 
+from apache_beam.pvalue import PCollection
 from apache_beam.testing.util import assert_that
+
 from gfw.common.beam.transforms.bigquery import FakeReadFromBigQuery
 from gfw.common.bigquery.helper import BigQueryHelper
-
 from pipe_encounters.assets import schemas
 from pipe_encounters.pipelines.partial_encounters.config import PartialEncountersConfig
 from pipe_encounters.pipelines.partial_encounters.main import (
@@ -15,21 +20,23 @@ from pipe_encounters.pipelines.partial_encounters.main import (
 )
 
 
-def config(**overrides):
-    fields = dict(
-        bq_in_positions="project.dataset.positions",
-        bq_out_partial_encounters="project.dataset.raw_encounters",
-        start_date=date(2024, 1, 1),
-        end_date=date(2024, 1, 2),
-        max_encounter_dist_km=0.5,
-        min_encounter_time_minutes=120,
-        labels={"environment": "test"},
-    )
+def config(**overrides: object) -> PartialEncountersConfig:
+    """Returns the pipeline's config for the test dates, with the fields overridden."""
+    fields = {
+        "bq_in_positions": "project.dataset.positions",
+        "bq_out_partial_encounters": "project.dataset.raw_encounters",
+        "start_date": date(2024, 1, 1),
+        "end_date": date(2024, 1, 2),
+        "max_encounter_dist_km": 0.5,
+        "min_encounter_time_minutes": 120,
+        "labels": {"environment": "test"},
+    }
     fields.update(overrides)
     return PartialEncountersConfig(**fields)
 
 
-def test_read_ssvid_filter(tmp_path):
+def test_read_ssvid_filter(tmp_path: Path) -> None:
+    """Checks the ssvid filter is returned as given, or read from the file named after @."""
     ssvids = tmp_path / "ssvids.txt"
     ssvids.write_text("'123', '456'")
 
@@ -38,7 +45,8 @@ def test_read_ssvid_filter(tmp_path):
     assert read_ssvid_filter(f"@{ssvids}") == "'123', '456'"
 
 
-def test_positions_query_reads_the_source_table():
+def test_positions_query_reads_the_source_table() -> None:
+    """Checks the positions query reads the configured table and dates."""
     query = positions_query(config())
 
     assert query.source_positions == "project.dataset.positions"
@@ -53,17 +61,17 @@ T0 = datetime(2024, 1, 1, 9, tzinfo=timezone.utc).timestamp()
 EVERY_SECONDS = 10 * 60
 
 
-def positions(seg_id, lat, hours=3):
+def positions(seg_id: str, lat: float, hours: int = 3) -> list[dict[str, float | str]]:
     """Rows shaped like PositionsQuery's output: a segment drifting east, every 10 minutes."""
     return [
-        dict(
-            id=seg_id,
-            timestamp=T0 + i * EVERY_SECONDS,
-            lat=lat,
-            lon=0.001 * i,
-            speed=1.0,
-            course=90.0,
-        )
+        {
+            "id": seg_id,
+            "timestamp": T0 + i * EVERY_SECONDS,
+            "lat": lat,
+            "lon": 0.001 * i,
+            "speed": 1.0,
+            "course": 90.0,
+        }
         for i in range(hours * 6 + 1)
     ]
 
@@ -71,16 +79,19 @@ def positions(seg_id, lat, hours=3):
 class AssertWritten(beam.PTransform):
     """Stands in for WriteToBigQuery: checks the rows to be written, inside the pipeline."""
 
-    def __init__(self, check, **kwargs):
+    def __init__(self, check: Callable[[list[dict[str, object]]], None], **kwargs: object) -> None:
+        """Stores the check to run on the rows written."""
         super().__init__()
         self._check = check
 
-    def expand(self, pcoll):
+    def expand(self, pcoll: PCollection) -> PCollection:
+        """Checks the rows, then passes them on."""
         assert_that(pcoll, self._check)
         return pcoll
 
 
-def check_one_encounter_seen_from_both_segments(rows):
+def check_one_encounter_seen_from_both_segments(rows: list[dict[str, object]]) -> None:
+    """Checks the one encounter written is seen from each of its two segments."""
     # Each piece appears once from each segment's side.
     assert sorted((r["vessel_1_seg_id"], r["vessel_2_seg_id"]) for r in rows) == [
         ("A", "B"),
@@ -93,20 +104,22 @@ def check_one_encounter_seen_from_both_segments(rows):
     assert {r["end_time"] for r in rows} == {T0 + 4 * 3600}
 
 
-def test_run(tmp_path):
-    reads, writes = [], []
+def test_run(tmp_path: Path) -> None:
+    """Runs the pipeline on mocked BigQuery, then checks the query, the rows and the deletes."""
+    reads: list[dict[str, object]] = []
+    writes: list[dict[str, object]] = []
 
-    def read_factory(**kwargs):
+    def read_factory(**kwargs: object) -> FakeReadFromBigQuery:
         reads.append(kwargs)
         return FakeReadFromBigQuery(elements=positions("A", 0.0) + positions("B", 0.004), **kwargs)
 
-    def write_factory(**kwargs):
+    def write_factory(**kwargs: object) -> AssertWritten:
         writes.append(kwargs)
         return AssertWritten(check_one_encounter_seen_from_both_segments, **kwargs)
 
     bq_clients = []
 
-    def bq_client_factory(**kwargs):
+    def bq_client_factory(**kwargs: object) -> object:
         bq_clients.append(BigQueryHelper.get_client_factory(mocked=True)(**kwargs))
         return bq_clients[-1]
 
