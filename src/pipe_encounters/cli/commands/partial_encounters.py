@@ -5,7 +5,8 @@ from typing import Any
 
 from gfw.common.cli import Command, Option, date_range_options
 
-from pipe_encounters import create_raw_pipeline
+from pipe_encounters.pipelines.partial_encounters import main
+from pipe_encounters.pipelines.partial_encounters.config import PartialEncountersConfig
 
 
 DESCRIPTION = """\
@@ -30,11 +31,7 @@ defined for Apache Beam PipelineOptions class. For more information, see
     https://cloud.google.com/dataflow/docs/reference/pipeline-options#python.\n
 """
 
-HELP_POSITIONS = (
-    "BigQuery tables to pull position messages from. Each may be prefixed by 'ID::' to prefix "
-    "its segment ids with 'ID:', which keeps the ids of different sources (e.g. AIS and VMS) "
-    "distinct."
-)
+HELP_POSITIONS = "BigQuery table to pull position messages from."
 HELP_OUTPUT = "BigQuery table in which to append the partial encounters."
 HELP_MAX_DIST = "Maximum distance (km) between two vessels to be in an encounter."
 HELP_MIN_TIME = "Minimum duration (minutes) of a piece of an encounter."
@@ -49,7 +46,7 @@ HELP_INCLUSIVE = (
 HELP_SSVID_FILTER = (
     "Subquery or list of ssvid to limit processing to. If prefixed by @, load from given path."
 )
-HELP_WAIT_FOR_JOB = "Wait until the job finishes before returning."
+HELP_MOCK_BQ = "If passed, mocks the BigQuery clients [Useful for development]."
 
 
 class PartialEncounters(Command):
@@ -69,7 +66,7 @@ class PartialEncounters(Command):
     def options(self) -> list[Option]:
         """The command's options."""
         return [
-            Option("--bq-in-positions", type=str, nargs="+", required=True, help=HELP_POSITIONS),
+            Option("--bq-in-positions", type=str, required=True, help=HELP_POSITIONS),
             Option("--bq-out-partial-encounters", type=str, required=True, help=HELP_OUTPUT),
             *date_range_options(),
             Option("--max-encounter-dist-km", type=float, required=True, help=HELP_MAX_DIST),
@@ -77,9 +74,9 @@ class PartialEncounters(Command):
             Option("--max-gap-seconds", type=int, default=3600, help=HELP_MAX_GAP),
             Option("--max-gap-seconds-inclusive", type=bool, default=False, help=HELP_INCLUSIVE),
             Option("--ssvid-filter", type=str, help=HELP_SSVID_FILTER),
-            Option("--wait-for-job", type=bool, default=False, help=HELP_WAIT_FOR_JOB),
+            Option("--mock-bq-clients", type=bool, default=False, help=HELP_MOCK_BQ),
         ]
 
     def run(self, config: SimpleNamespace, **kwargs: Any) -> Any:
         """Runs the pipeline with the resolved configuration."""
-        return create_raw_pipeline.run(config, **kwargs)
+        return main.run(PartialEncountersConfig.from_namespace(config), **kwargs)

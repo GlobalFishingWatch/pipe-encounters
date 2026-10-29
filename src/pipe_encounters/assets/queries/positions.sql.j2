@@ -1,0 +1,15 @@
+SELECT
+    lat AS lat,
+    lon AS lon,
+    speed AS speed,
+    course AS course,
+    UNIX_MILLIS(timestamp) / 1000.0 AS timestamp,
+    seg_id AS id
+FROM
+    `{{ source_positions }}`
+WHERE
+    date(timestamp) >= '{{ start_date }}'
+    AND date(timestamp) < '{{ end_date }}'
+{% if ssvid_filter %}
+    AND ssvid IN ({{ ssvid_filter }})
+{% endif %}

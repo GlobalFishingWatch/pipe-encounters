@@ -65,7 +65,7 @@ frozenlist==1.8.0
     #   aiosignal
 future==1.0.0
     # via s2sphere
-gfw-common==0.20.3
+gfw-common==0.23.0
     # via pipe-encounters (pyproject.toml)
 google-api-core==2.30.0
     # via

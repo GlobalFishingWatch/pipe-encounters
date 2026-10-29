@@ -5,7 +5,8 @@ from typing import Any
 
 from gfw.common.cli import Command, Option, date_range_options
 
-from pipe_encounters import merge_pipeline
+from pipe_encounters.pipelines.encounters import main
+from pipe_encounters.pipelines.encounters.config import EncountersConfig
 
 
 DESCRIPTION = """\
@@ -28,10 +29,7 @@ defined for Apache Beam PipelineOptions class. For more information, see
 """
 
 HELP_PARTIAL = "BigQuery table to pull the partial encounters from."
-HELP_SEGMENTS = (
-    "BigQuery tables mapping each seg_id to its vessel_id, e.g. segment_info. Each may be "
-    "prefixed by 'ID::' to prefix its segment ids with 'ID:', as in partial-encounters."
-)
+HELP_SEGMENTS = "BigQuery table mapping each seg_id to its vessel_id, e.g. segment_info."
 HELP_SPATIAL = "BigQuery table to pull the distance from shore and from port from."
 HELP_OUTPUT = "BigQuery table in which to write the encounters. Its content is replaced."
 HELP_BAD_SEGS = (
@@ -39,7 +37,7 @@ HELP_BAD_SEGS = (
 )
 HELP_MIN_HOURS = "Partial encounters less than these hours apart are joined into one."
 HELP_MIN_TIME = "Minimum duration (minutes) of an encounter. Not applied if not set."
-HELP_WAIT_FOR_JOB = "Wait until the job finishes before returning."
+HELP_MOCK_BQ = "If passed, mocks the BigQuery clients [Useful for development]."
 
 
 class Encounters(Command):
@@ -60,16 +58,16 @@ class Encounters(Command):
         """The command's options."""
         return [
             Option("--bq-in-partial-encounters", type=str, required=True, help=HELP_PARTIAL),
-            Option("--bq-in-segment-info", type=str, nargs="+", required=True, help=HELP_SEGMENTS),
+            Option("--bq-in-segment-info", type=str, required=True, help=HELP_SEGMENTS),
             Option("--bq-in-spatial-measures", type=str, required=True, help=HELP_SPATIAL),
             Option("--bq-out-encounters", type=str, required=True, help=HELP_OUTPUT),
             *date_range_options(),
             Option("--bad-segs", type=str, help=HELP_BAD_SEGS),
             Option("--min-hours-between-encounters", type=float, default=4, help=HELP_MIN_HOURS),
             Option("--min-encounter-time-minutes", type=float, help=HELP_MIN_TIME),
-            Option("--wait-for-job", type=bool, default=False, help=HELP_WAIT_FOR_JOB),
+            Option("--mock-bq-clients", type=bool, default=False, help=HELP_MOCK_BQ),
         ]
 
     def run(self, config: SimpleNamespace, **kwargs: Any) -> Any:
         """Runs the pipeline with the resolved configuration."""
-        return merge_pipeline.run(config, **kwargs)
+        return main.run(EncountersConfig.from_namespace(config), **kwargs)
