@@ -12,7 +12,7 @@ from gfw.common.query import Query
 class PositionsQuery(Query):
     """Positions of each segment in [start_date, end_date), one row per position.
 
-    Each row's ``id`` is its seg_id, prefixed by ``id_prefix``.
+    Each row's ``id`` is its seg_id.
     Optionally limited to the vessels ``ssvid_filter`` (a subquery or a list of ssvids) returns.
     Its fields are the template's variables (see template_vars).
     """
@@ -20,7 +20,6 @@ class PositionsQuery(Query):
     source_positions: str
     start_date: datetime.date
     end_date: datetime.date
-    id_prefix: str = ""
     ssvid_filter: str = None
 
     @property

@@ -28,10 +28,7 @@ defined for Apache Beam PipelineOptions class. For more information, see
 """
 
 HELP_PARTIAL = "BigQuery table to pull the partial encounters from."
-HELP_SEGMENTS = (
-    "BigQuery tables mapping each seg_id to its vessel_id, e.g. segment_info. Each may be "
-    "prefixed by 'ID::' to prefix its segment ids with 'ID:', as in partial-encounters."
-)
+HELP_SEGMENTS = "BigQuery table mapping each seg_id to its vessel_id, e.g. segment_info."
 HELP_SPATIAL = "BigQuery table to pull the distance from shore and from port from."
 HELP_OUTPUT = "BigQuery table in which to write the encounters. Its content is replaced."
 HELP_BAD_SEGS = (
@@ -60,7 +57,7 @@ class Encounters(Command):
         """The command's options."""
         return [
             Option("--bq-in-partial-encounters", type=str, required=True, help=HELP_PARTIAL),
-            Option("--bq-in-segment-info", type=str, nargs="+", required=True, help=HELP_SEGMENTS),
+            Option("--bq-in-segment-info", type=str, required=True, help=HELP_SEGMENTS),
             Option("--bq-in-spatial-measures", type=str, required=True, help=HELP_SPATIAL),
             Option("--bq-out-encounters", type=str, required=True, help=HELP_OUTPUT),
             *date_range_options(),

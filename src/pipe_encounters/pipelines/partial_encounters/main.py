@@ -24,15 +24,6 @@ from pipe_encounters.pipelines.partial_encounters.transforms.core import DetectP
 from pipe_encounters.utils.ver import __version__
 
 
-def split_id_prefix(source: str) -> tuple[str, str]:
-    """Splits a positions source, optionally "ID::table", into its seg_id prefix and table."""
-    if "::" not in source:
-        return "", source
-
-    id_prefix, table = source.split("::", 1)
-    return f"{id_prefix}:", table
-
-
 def read_ssvid_filter(ssvid_filter: str) -> str:
     """Returns the ssvid filter, read from a file if it's a path prefixed by @."""
     if ssvid_filter is None or not ssvid_filter.startswith("@"):
@@ -42,23 +33,15 @@ def read_ssvid_filter(ssvid_filter: str) -> str:
         return f.read()
 
 
-def positions_queries(config: PartialEncountersConfig) -> list[PositionsQuery]:
-    """Returns the query that reads the positions of each source table."""
-    ssvid_filter = read_ssvid_filter(config.ssvid_filter)
-
-    queries = []
-    for source in config.bq_in_positions:
-        id_prefix, table = split_id_prefix(source)
-        query = PositionsQuery(
-            source_positions=table,
-            start_date=config.start_date,
-            end_date=config.end_date,
-            id_prefix=id_prefix,
-            ssvid_filter=ssvid_filter,
-        )
-        queries.append(query.with_env(config.jinja_env))
-
-    return queries
+def positions_query(config: PartialEncountersConfig) -> PositionsQuery:
+    """Returns the query that reads the positions of the source table."""
+    query = PositionsQuery(
+        source_positions=config.bq_in_positions,
+        start_date=config.start_date,
+        end_date=config.end_date,
+        ssvid_filter=read_ssvid_filter(config.ssvid_filter),
+    )
+    return query.with_env(config.jinja_env)
 
 
 def run(
@@ -120,12 +103,11 @@ def run(
     dag = LinearDag(
         sources=[
             ReadFromBigQuery.from_query(
-                query,
-                label=f"ReadPositions_{i}",
+                positions_query(config),
+                label="ReadPositions",
                 read_from_bigquery_factory=read_from_bigquery_factory,
                 read_from_bigquery_kwargs={"bigquery_job_labels": config.labels},
             )
-            for i, query in enumerate(positions_queries(config))
         ],
         core=DetectPartialEncounters(
             start_date=config.start_date,

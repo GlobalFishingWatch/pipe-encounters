@@ -86,23 +86,11 @@ def create_queries(args, start_date, end_date):
     if args.bad_segs is None:
         condition = ""
     else:
-        # TODO: need multiple bad segs tables to support multiple inputs.
-        # Need optional 'prefix::' for them
         condition = f"""  AND vessel_1_seg_id NOT IN (SELECT seg_id FROM {args.bad_segs})
                           AND vessel_2_seg_id NOT IN (SELECT seg_id FROM {args.bad_segs})
         """
 
-    subqueries = []
-    for table in args.bq_in_segment_info:
-        if "::" in table:
-            id_prefix, table = table.split("::", 1)
-            id_prefix += ":"
-        else:
-            id_prefix = ""
-        subqueries.append(
-            f'SELECT CONCAT("{id_prefix}", seg_id) AS seg_id, vessel_id FROM {table}'
-        )
-    vessel_id_query = "\nUNION ALL\n".join(subqueries)
+    vessel_id_query = f"SELECT seg_id, vessel_id FROM {args.bq_in_segment_info}"
 
     start_window = start_date
     shift = 1000

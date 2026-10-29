@@ -14,8 +14,8 @@ class PartialEncountersConfig(DatePipelineConfig):
     Processes the dates in [start_date, end_date).
     """
 
-    bq_in_positions: list[str]
-    """Tables to read the positions from, each optionally prefixed by 'ID::'."""
+    bq_in_positions: str
+    """Table to read the positions from."""
 
     bq_out_partial_encounters: str
     """Table in which to append the partial encounters."""

@@ -1,7 +1,6 @@
 # Query parameters:
 bq_in_partial_encounters: "world-fishing-827.scratch_tomas_ttl30d.raw_encounters"
-bq_in_segment_info:
-  - "world-fishing-827.pipe_production_v20201001.segment_info"
+bq_in_segment_info: "world-fishing-827.pipe_production_v20201001.segment_info"
 bq_in_spatial_measures: "world-fishing-827.pipe_static.spatial_measures_20200311"
 bq_out_encounters: "world-fishing-827.scratch_tomas_ttl30d.encounters"
 start_date: "2017-01-01"

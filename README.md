@@ -218,8 +218,6 @@ replacing a table.</td>
 <div align="justify">
 
 Date ranges start at `--start-date` and end before `--end-date`.
-`--bq-in-positions` and `--bq-in-segment-info` accept several tables,
-each optionally prefixed by `ID::` to keep the segment ids of different sources (e.g. AIS and VMS) distinct.
 Besides each command's own options, they accept any Apache Beam pipeline option,
 like `--runner` or `--max-num-workers`.
 

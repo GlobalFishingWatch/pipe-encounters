@@ -1,6 +1,5 @@
 # Query parameters:
-bq_in_positions:
-  - "world-fishing-827.pipe_production_v20201001.position_messages"
+bq_in_positions: "world-fishing-827.pipe_production_v20201001.position_messages"
 bq_out_partial_encounters: "world-fishing-827.scratch_tomas_ttl30d.raw_encounters"
 start_date: "2024-01-01"
 end_date: "2024-01-02"

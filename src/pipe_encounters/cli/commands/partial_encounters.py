@@ -31,11 +31,7 @@ defined for Apache Beam PipelineOptions class. For more information, see
     https://cloud.google.com/dataflow/docs/reference/pipeline-options#python.\n
 """
 
-HELP_POSITIONS = (
-    "BigQuery tables to pull position messages from. Each may be prefixed by 'ID::' to prefix "
-    "its segment ids with 'ID:', which keeps the ids of different sources (e.g. AIS and VMS) "
-    "distinct."
-)
+HELP_POSITIONS = "BigQuery table to pull position messages from."
 HELP_OUTPUT = "BigQuery table in which to append the partial encounters."
 HELP_MAX_DIST = "Maximum distance (km) between two vessels to be in an encounter."
 HELP_MIN_TIME = "Minimum duration (minutes) of a piece of an encounter."
@@ -70,7 +66,7 @@ class PartialEncounters(Command):
     def options(self) -> list[Option]:
         """The command's options."""
         return [
-            Option("--bq-in-positions", type=str, nargs="+", required=True, help=HELP_POSITIONS),
+            Option("--bq-in-positions", type=str, required=True, help=HELP_POSITIONS),
             Option("--bq-out-partial-encounters", type=str, required=True, help=HELP_OUTPUT),
             *date_range_options(),
             Option("--max-encounter-dist-km", type=float, required=True, help=HELP_MAX_DIST),

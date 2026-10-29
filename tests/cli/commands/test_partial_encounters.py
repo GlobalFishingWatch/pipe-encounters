@@ -32,7 +32,7 @@ def test_cli_executes_run_with_the_config(run):
 
     config = run.call_args.args[0]
     assert isinstance(config, PartialEncountersConfig)
-    assert config.bq_in_positions == ["project.dataset.messages"]
+    assert config.bq_in_positions == "project.dataset.messages"
     assert config.bq_out_partial_encounters == "project.dataset.raw_encounters"
     assert config.start_date == date(2024, 1, 1)
     assert config.end_date == date(2024, 1, 8)
@@ -43,18 +43,6 @@ def test_cli_executes_run_with_the_config(run):
     assert config.ssvid_filter is None
     assert config.mock_bq_clients is False
     assert config.labels == {"environment": "test"}
-
-
-def test_cli_accepts_several_position_tables(run):
-    more_tables = ["--bq-in-positions", "AIS::project.dataset.ais", "VMS::project.dataset.vms"]
-    args = [*BASE_ARGS, *more_tables]
-
-    main.run(args)
-
-    assert run.call_args.args[0].bq_in_positions == [
-        "AIS::project.dataset.ais",
-        "VMS::project.dataset.vms",
-    ]
 
 
 def test_cli_requires_the_output_table(run):

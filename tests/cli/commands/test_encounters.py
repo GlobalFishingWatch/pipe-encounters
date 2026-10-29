@@ -29,7 +29,7 @@ def test_cli_executes_run_with_the_config(run):
 
     config = run.call_args.args[0]
     assert config.bq_in_partial_encounters == "project.dataset.raw_encounters"
-    assert config.bq_in_segment_info == ["project.dataset.segment_info"]
+    assert config.bq_in_segment_info == "project.dataset.segment_info"
     assert config.bq_in_spatial_measures == "project.dataset.spatial_measures"
     assert config.bq_out_encounters == "project.dataset.encounters"
     assert config.start_date == date(2017, 1, 1)
@@ -39,17 +39,6 @@ def test_cli_executes_run_with_the_config(run):
     assert config.min_encounter_time_minutes is None
     assert config.wait_for_job is False
     assert config.labels == {"environment": "test"}
-
-
-def test_cli_accepts_several_segment_info_tables(run):
-    more_tables = ["--bq-in-segment-info", "AIS::project.dataset.ais", "VMS::project.dataset.vms"]
-
-    main.run([*BASE_ARGS, *more_tables])
-
-    assert run.call_args.args[0].bq_in_segment_info == [
-        "AIS::project.dataset.ais",
-        "VMS::project.dataset.vms",
-    ]
 
 
 def test_cli_requires_the_output_table(run):
