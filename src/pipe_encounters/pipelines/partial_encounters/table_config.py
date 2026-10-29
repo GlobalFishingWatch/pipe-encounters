@@ -25,8 +25,6 @@ CAVEATS = """\
 the rest of its encounter.
 ⬖ Positions are extrapolated up to the maximum gap before the first and after the last
 position of each segment-day, so pieces can extend beyond the positions that support them.
-⬖ Rows are deleted by start date but written by end date, so reprocessing dates can
-duplicate the pieces that start the day before.
 """
 
 
@@ -60,8 +58,8 @@ class PartialEncountersTableConfig(TableConfig):
         """Returns the query that deletes the rows of the processed range [start_date, end_date).
 
         The pipeline appends, so the range is cleared first to make reprocessing it idempotent.
-        Rows are deleted by their start date, as the legacy pipeline did, although they're
-        written by their end date. Without end_date, it deletes everything from start_date on.
+        Rows are deleted by their start date, which is also their end date: pieces never cross
+        midnight. Without end_date, it deletes everything from start_date on.
         """
         query = f"DELETE FROM `{self.table_id}` WHERE DATE(start_time) >= '{start_date}'"
         if end_date is not None:

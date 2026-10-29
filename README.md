@@ -151,9 +151,6 @@ The current output has some known issues, to be fixed in the pipeline itself:
   and they're computed with the course converted to radians twice, so they head the wrong way.
 - `encounters` adds up the point counts of both sides of each piece,
   so the vessels' point counts are doubled.
-- `partial-encounters` deletes the processed dates by the start of each piece,
-  but writes the pieces by their end,
-  so reprocessing dates can duplicate the pieces that start the day before.
 
 </div>
 
