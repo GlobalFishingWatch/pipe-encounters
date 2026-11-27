@@ -15,7 +15,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
-          python-version: 3.12
+          python-version: 3.13
 
       - name: Install ruff
         run: pip --disable-pip-version-check install "ruff~=0.15"
@@ -33,9 +33,9 @@ jobs:
       fail-fast: true
       matrix:
         os: ["ubuntu-latest"]
-        # 3.12 is covered by tests-in-docker (same version the Dockerfile builds on);
+        # 3.13 is covered by tests-in-docker (same version the Dockerfile builds on);
         # no need to run it twice.
-        python-version: ["3.13"]
+        python-version: ["3.14"]
     env:
       VENV: .venv
       PACKAGE: pipe_encounters
@@ -54,7 +54,7 @@ jobs:
         run: make uv
 
       - name: Create virtual environment
-        # make uv pins .python-version to 3.12; --python makes the venv use the matrix version.
+        # make uv pins .python-version to 3.13; --python makes the venv use the matrix version.
         run: uv venv --python ${{ matrix.python-version }} $VENV
 
       - name: Install package with test dependencies
@@ -82,7 +82,7 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
 
   tests-in-docker:
-    name: tests - Python 3.12 on Docker
+    name: tests - Python 3.13 on Docker
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
